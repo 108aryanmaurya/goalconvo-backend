@@ -1159,6 +1159,7 @@ if __name__ == '__main__':
     logger.info("  - pipeline: pipeline_start, step_start, step_data, log, pipeline_complete, pipeline_error")
     logger.info("  - evaluation: step_start, log, evaluation_complete, evaluation_error")
     
-    socketio.run(app, host=host, port=port, debug=True, allow_unsafe_werkzeug=True)
+    debug = os.getenv('FLASK_DEBUG', 'false').lower() in ('1', 'true', 'yes')
+    socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
 
 

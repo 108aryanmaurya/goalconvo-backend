@@ -1,0 +1,116 @@
+[
+  {
+    "dialogue_id": "5e28d9c8-40bc-454d-a3da-d470e38f7aed",
+    "goal": "Book a room at El Shaddai",
+    "domain": "hotel",
+    "context": "The user is planning a weekend getaway to a peaceful retreat and wants to book a room at El Shaddai, a renowned spiritual retreat center known for its tranquil environment and meditation programs.",
+    "user_persona": "Friendly and detail-oriented",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I'm interested in booking a room at El Shaddai for the upcoming weekend retreat.",
+        "timestamp": "2026-03-11T08:14:09.096410"
+      },
+      {
+        "role": "SupportBot",
+        "text": "I've checked availability for the upcoming weekend at El Shaddai, and we have a few rooms available for you. Would you prefer a single or double room for your retreat?",
+        "timestamp": "2026-03-11T08:14:09.974321"
+      },
+      {
+        "role": "User",
+        "text": "I would prefer a single room for the upcoming weekend retreat at El Shaddai.",
+        "timestamp": "2026-03-11T08:14:10.755437"
+      },
+      {
+        "role": "SupportBot",
+        "text": "Great choice! I have successfully reserved a single room for you at El Shaddai for the upcoming weekend retreat. Your confirmation number is RETREAT-SINGLE-001. Enjoy your peaceful getaway!",
+        "timestamp": "2026-03-11T08:14:11.678282"
+      },
+      {
+        "role": "User",
+        "text": "Could you please confirm the check-in time for the single room reservation at El Shaddai for the upcoming weekend retreat?",
+        "timestamp": "2026-03-11T08:14:13.458272"
+      },
+      {
+        "role": "SupportBot",
+        "text": "The check-in time for your single room reservation at El Shaddai for the upcoming weekend retreat is at 3:00 pm. Enjoy your peaceful getaway!",
+        "timestamp": "2026-03-11T08:14:14.501219"
+      },
+      {
+        "role": "User",
+        "text": "What time is the check-out for the single room reservation at El Shaddai for the upcoming weekend retreat?",
+        "timestamp": "2026-03-11T08:14:15.542289"
+      },
+      {
+        "role": "SupportBot",
+        "text": "The check-out time for your single room reservation at El Shaddai for the upcoming weekend retreat is at 12:00 pm. Enjoy your peaceful getaway!",
+        "timestamp": "2026-03-11T08:14:16.858773"
+      },
+      {
+        "role": "User",
+        "text": "Thank you, that's perfect!",
+        "timestamp": "2026-03-11T08:14:16.858876"
+      }
+    ],
+    "metadata": {
+      "num_turns": 9,
+      "generated_at": "2026-03-11T08:14:16.859118",
+      "model_version": "mistralai/Mistral-7B-Instruct-v0.1",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 7.763,
+      "generation_start_time": "2026-03-11T08:14:09.096370",
+      "generation_end_time": "2026-03-11T08:14:16.859117",
+      "goal_complexity": 3,
+      "quality_score": 0.8600000000000001,
+      "quality_assessment": {
+        "dialogue_id": "5e28d9c8-40bc-454d-a3da-d470e38f7aed",
+        "domain": "hotel",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 9,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 9 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 4.0,
+          "goal_relevance": true,
+          "overall_score": 4.0
+        },
+        "overall_score": 0.8600000000000001,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-03-11T08:14:19.303974"
+      }
+    }
+  }
+]

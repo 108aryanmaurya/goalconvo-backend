@@ -1,0 +1,3 @@
+# For Railway, Heroku, or any Procfile-based platform.
+# Set root directory to goalconvo-backend when connecting the repo.
+web: python backend_server.py

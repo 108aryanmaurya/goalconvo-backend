@@ -1,0 +1,10 @@
+version: "3.0"
+stories:
+- story: 8ab3b35d-0a11-4868-84f3-12c977c5c297
+  steps:
+  - user: "Hi, I need help with book a room at gonville"
+  - bot: "I can help you book at Gonville. What dates do you need the room for?"
+  - user: "I still need help with Book a room at Gonville."
+  - bot: "I can help you book at Gonville. What dates do you need the room for?"
+  - user: "I still need help with Book a room at Gonville."
+  - bot: "I can help you book at Gonville. What dates do you need the room for?"
