@@ -36,11 +36,14 @@ class GoalConvoGenerator:
         self.config = config
         
         # Initialize components
-        self.llm_client = LLMClient(config)
+        self.generation_llm_client = LLMClient(config, api_config=config.get_generation_api_config())
+        self.evaluation_llm_client = LLMClient(config, api_config=config.get_evaluation_api_config())
+        # Backwards-compatible alias for places that expect a single client.
+        self.llm_client = self.generation_llm_client
         self.dataset_store = DatasetStore(config)
-        self.experience_generator = ExperienceGenerator(config, self.llm_client, self.dataset_store)
-        self.dialogue_simulator = DialogueSimulator(config, self.llm_client)
-        self.quality_judge = QualityJudge(config, self.llm_client)
+        self.experience_generator = ExperienceGenerator(config, self.generation_llm_client, self.dataset_store)
+        self.dialogue_simulator = DialogueSimulator(config, self.generation_llm_client)
+        self.quality_judge = QualityJudge(config, self.evaluation_llm_client)
         
         # Generation statistics
         self.stats = {

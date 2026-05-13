@@ -17,7 +17,7 @@ load_dotenv()
 class Config:
     """Configuration class containing all hyperparameters and settings."""
 
-    # OpenRouter.ai (unified API, OpenAI-compatible) - first priority
+    # OpenRouter.ai (unified API, OpenAI-compatible)
     openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     openrouter_api_base: str = os.getenv("OPENROUTER_API_BASE", "https://openrouter.ai/api/v1")
     openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openai/gpt-3.5-turbo")
@@ -103,6 +103,16 @@ class Config:
     prompt_instruction_words: int = int(os.getenv("PROMPT_INSTRUCTION_WORDS", "250"))
     prompt_last_k_turns: int = int(os.getenv("PROMPT_LAST_K_TURNS", "6"))  # last 6 turns = 3 exchanges
 
+    # Multi-agent capabilities: memory, tool stubs, planning, RL-lite telemetry
+    agent_memory_enabled: bool = os.getenv("AGENT_MEMORY_ENABLED", "true").lower() in ("true", "1", "yes")
+    agent_tools_enabled: bool = os.getenv("AGENT_TOOLS_ENABLED", "true").lower() in ("true", "1", "yes")
+    agent_planning_enabled: bool = os.getenv("AGENT_PLANNING_ENABLED", "true").lower() in ("true", "1", "yes")
+    rl_lite_enabled: bool = os.getenv("RL_LITE_ENABLED", "true").lower() in ("true", "1", "yes")
+    rl_goal_weight: float = float(os.getenv("RL_GOAL_WEIGHT", "0.6"))
+    rl_coherence_weight: float = float(os.getenv("RL_COHERENCE_WEIGHT", "0.4"))
+    max_tokens_memory_refresh: int = int(os.getenv("MAX_TOKENS_MEMORY_REFRESH", "256"))
+    max_tokens_planning: int = int(os.getenv("MAX_TOKENS_PLANNING", "180"))
+
     # Evaluation settings
     bertscore_model: str = "microsoft/deberta-xlarge-mnli"
     diversity_metrics: List[str] = field(default_factory=lambda: ["distinct-1", "distinct-2", "self-bleu"])
@@ -135,15 +145,14 @@ class Config:
         """Get API configuration for the selected provider.
         
         Priority order:
-        1. OpenRouter.ai - if API key available
-        2. Groq - if API key available
-        3. DeepSeek - if API key available
+        1. Groq - if API key available
+        2. DeepSeek - if API key available
+        3. OpenRouter.ai - if API key available
         4. Ollama (local) - if enabled
         5. Gemini - if API key available
         6. OpenAI (ChatGPT) - if API key available
         7. Mistral - if API key available
         """
-        # Priority 2: Groq
         if self.openrouter_api_key:
             return {
                 "api_key": self.openrouter_api_key,
@@ -151,13 +160,7 @@ class Config:
                 "model": self.openrouter_model,
                 "provider": "openrouter"
             }
-        if self.deepseek_api_key:
-            return {
-                "api_key": self.deepseek_api_key,
-                "api_base": self.deepseek_api_base,
-                "model": self.deepseek_model,
-                "provider": "deepseek"
-            }
+        # Priority 1: Groq
         if self.groq_api_key:
             return {
                 "api_key": self.groq_api_key,
@@ -165,9 +168,17 @@ class Config:
                 "model": self.groq_model,
                 "provider": "groq"
             }
-        # Priority 1: OpenRouter.ai
-        # Priority 3: DeepSeek
-        # Priority 3: Ollama (local, if enabled)
+        # Priority 2: DeepSeek
+        if self.deepseek_api_key:
+            return {
+                "api_key": self.deepseek_api_key,
+                "api_base": self.deepseek_api_base,
+                "model": self.deepseek_model,
+                "provider": "deepseek"
+            }
+        # Priority 3: OpenRouter.ai
+
+        # Priority 4: Ollama (local, if enabled)
         if self.ollama_enabled:
             return {
                 "api_key": "",  # Ollama doesn't require API key
@@ -175,7 +186,7 @@ class Config:
                 "model": self.ollama_model,
                 "provider": "ollama"
             }
-        # Priority 3: Gemini
+        # Priority 5: Gemini
         elif self.gemini_api_key:
             return {
                 "api_key": self.gemini_api_key,
@@ -183,7 +194,7 @@ class Config:
                 "model": self.gemini_model,
                 "provider": "gemini"
             }
-        # Priority 3: OpenAI (ChatGPT)
+        # Priority 6: OpenAI (ChatGPT)
         elif self.openai_api_key:
             return {
                 "api_key": self.openai_api_key,
@@ -191,7 +202,7 @@ class Config:
                 "model": self.openai_model,
                 "provider": "openai"
             }
-        # Priority 4: Mistral
+        # Priority 7: Mistral
         elif self.mistral_api_key:
             return {
                 "api_key": self.mistral_api_key,
@@ -201,6 +212,99 @@ class Config:
             }
         else:
             raise ValueError("No valid API configuration found. Set OPENROUTER_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY, GEMINI_API_KEY, OLLAMA_ENABLED=true, MISTRAL_API_KEY, or OPENAI_API_KEY")
+
+    def _resolve_provider_config(self, provider_name: str, model_override: str = "") -> Dict[str, Any]:
+        """Resolve API config for a specific provider name."""
+        provider = (provider_name or "").strip().lower()
+        model_override = (model_override or "").strip()
+
+        if provider == "gemini":
+            if not self.gemini_api_key:
+                raise ValueError("GEMINI_API_KEY is required when provider is 'gemini'")
+            return {
+                "api_key": self.gemini_api_key,
+                "api_base": self.gemini_api_base,
+                "model": model_override or self.gemini_model,
+                "provider": "gemini",
+            }
+        if provider == "openrouter":
+            if not self.openrouter_api_key:
+                raise ValueError("OPENROUTER_API_KEY is required when provider is 'openrouter'")
+            return {
+                "api_key": self.openrouter_api_key,
+                "api_base": self.openrouter_api_base,
+                "model": model_override or self.openrouter_model,
+                "provider": "openrouter",
+            }
+        if provider == "claude":
+            if not self.openrouter_api_key:
+                raise ValueError("OPENROUTER_API_KEY is required when provider is 'claude' (via OpenRouter)")
+            return {
+                "api_key": self.openrouter_api_key,
+                "api_base": self.openrouter_api_base,
+                "model": model_override or os.getenv("EVALUATION_MODEL", "anthropic/claude-3.5-sonnet"),
+                "provider": "openrouter",
+            }
+        if provider == "deepseek":
+            if not self.deepseek_api_key:
+                raise ValueError("DEEPSEEK_API_KEY is required when provider is 'deepseek'")
+            return {
+                "api_key": self.deepseek_api_key,
+                "api_base": self.deepseek_api_base,
+                "model": model_override or self.deepseek_model,
+                "provider": "deepseek",
+            }
+        if provider == "groq":
+            if not self.groq_api_key:
+                raise ValueError("GROQ_API_KEY is required when provider is 'groq'")
+            return {
+                "api_key": self.groq_api_key,
+                "api_base": self.groq_api_base,
+                "model": model_override or self.groq_model,
+                "provider": "groq",
+            }
+        if provider == "ollama":
+            if not self.ollama_enabled:
+                raise ValueError("OLLAMA_ENABLED=true is required when provider is 'ollama'")
+            return {
+                "api_key": "",
+                "api_base": self.ollama_api_base,
+                "model": model_override or self.ollama_model,
+                "provider": "ollama",
+            }
+        if provider == "openai":
+            if not self.openai_api_key:
+                raise ValueError("OPENAI_API_KEY is required when provider is 'openai'")
+            return {
+                "api_key": self.openai_api_key,
+                "api_base": self.openai_api_base,
+                "model": model_override or self.openai_model,
+                "provider": "openai",
+            }
+        if provider == "mistral":
+            if not self.mistral_api_key:
+                raise ValueError("MISTRAL_API_KEY is required when provider is 'mistral'")
+            return {
+                "api_key": self.mistral_api_key,
+                "api_base": self.mistral_api_base,
+                "model": model_override or self.mistral_model,
+                "provider": "mistral",
+            }
+        raise ValueError(
+            f"Unsupported provider '{provider}'. Supported: gemini, claude, openrouter, deepseek, groq, ollama, openai, mistral"
+        )
+
+    def get_generation_api_config(self) -> Dict[str, Any]:
+        """Get API configuration for dialogue generation."""
+        provider = os.getenv("GENERATION_PROVIDER", "groq")
+        model = os.getenv("GENERATION_MODEL", "")
+        return self._resolve_provider_config(provider, model_override=model)
+
+    def get_evaluation_api_config(self) -> Dict[str, Any]:
+        """Get API configuration for dialogue evaluation/judging."""
+        provider = os.getenv("EVALUATION_PROVIDER", "groq")
+        model = os.getenv("EVALUATION_MODEL", "")
+        return self._resolve_provider_config(provider, model_override=model)
     
     def get_generation_params(self) -> Dict[str, Any]:
         """Get parameters for text generation."""

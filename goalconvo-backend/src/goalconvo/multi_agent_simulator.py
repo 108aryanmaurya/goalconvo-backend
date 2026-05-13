@@ -6,6 +6,7 @@ Simulates dialogues between User and SupportBot agents using Mistral-7B.
 
 import json
 import logging
+import re
 import time
 from typing import Dict, List, Any, Optional, Tuple, Callable
 from datetime import datetime
@@ -13,6 +14,15 @@ from datetime import datetime
 from .config import Config
 from .llm_client import LLMClient
 from .utils import generate_dialogue_id, format_conversation_history, calculate_similarity
+from .agent_capabilities import (
+    build_planning_instruction,
+    format_memory_lines,
+    format_tool_block_for_prompt,
+    parse_memory_json,
+    parse_plan_and_reply,
+    tool_db_lookup_stub,
+    tool_search_stub,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +72,13 @@ User Persona: {user_persona}
 {structured_goal}
 {persona_traits}
 
+{memory_section}
+
 Conversation History:
 {history}
 {progress_hint}
+
+{planning_instruction}
 
 What would you say next? Follow these rules:
 
@@ -106,6 +120,8 @@ Consider the user's context and persona when responding (e.g. if they need to be
 
 CRITICAL: Never reply with only a promise to "check" or "get back shortly" when the user has asked for specific information or confirmation—either provide the information or a concrete confirmation in this same turn. If you already said you would "check" or "get back to them" in a previous turn, you MUST provide the actual information or confirmation in this turn; do not defer again.
 
+When the prompt includes simulated search or db_lookup lines, treat them as internal tool results: use them to ground specifics when helpful; do not claim live web or real database access.
+
 Do not repeat or paraphrase your previous message or the user's last message. Say something new.
 
 Use natural, fluent language. Do not include role labels like \"User:\" or \"Assistant:\"—only your reply.""",
@@ -117,8 +133,14 @@ Context: {context}
 {domain_grounding}
 {supportbot_style}
 
+{tool_outputs}
+
+{memory_section}
+
 Conversation History:
 {history}
+
+{planning_instruction}
 
 As the support assistant, respond to the LAST user message in the history.
 - Stay focused on the user's goal.
@@ -207,6 +229,9 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         dialogue_id = generate_dialogue_id()
         turns = []
         conversation_history = []
+        user_memory: List[str] = []
+        support_memory: List[str] = []
+        rl_trajectory: List[float] = []
         
         # Add system message with goal and domain
         conversation_history.append({
@@ -219,7 +244,8 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
             user_turn = {
                 "role": "User",
                 "text": first_utterance,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "metadata": {},
             }
             turns.append(user_turn)
             conversation_history.append(user_turn)
@@ -227,13 +253,15 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                 progress_callback(list(turns), "First user utterance")
         else:
             # Generate initial user utterance if not provided
-            user_response = self._generate_user_turn(
-                goal, context, user_persona, conversation_history, domain, experience_data
+            user_response, u_meta = self._generate_user_turn(
+                goal, context, user_persona, conversation_history, domain, experience_data,
+                user_memory, support_memory,
             )
             user_turn = {
                 "role": "User",
                 "text": user_response,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "metadata": u_meta,
             }
             turns.append(user_turn)
             conversation_history.append(user_turn)
@@ -255,14 +283,16 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         for turn_num in range(1, max_turns + 1):
             try:
                 # Generate SupportBot response
-                supportbot_response = self._generate_supportbot_turn(
-                    goal, context, conversation_history, domain, experience_data
+                supportbot_response, sb_meta = self._generate_supportbot_turn(
+                    goal, context, conversation_history, domain, experience_data,
+                    user_memory, support_memory,
                 )
                 
                 supportbot_turn = {
                     "role": "SupportBot",
                     "text": supportbot_response,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "metadata": sb_meta,
                 }
                 turns.append(supportbot_turn)
                 conversation_history.append(supportbot_turn)
@@ -270,19 +300,31 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                     progress_callback(list(turns), f"Generating SupportBot turn {len(turns)}")
                 
                 # Generate User response
-                user_response = self._generate_user_turn(
-                    goal, context, user_persona, conversation_history, domain, experience_data
+                user_response, u_meta = self._generate_user_turn(
+                    goal, context, user_persona, conversation_history, domain, experience_data,
+                    user_memory, support_memory,
                 )
                 
                 user_turn = {
                     "role": "User",
                     "text": user_response,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "metadata": u_meta,
                 }
                 turns.append(user_turn)
                 conversation_history.append(user_turn)
                 if progress_callback:
                     progress_callback(list(turns), f"Generating User turn {len(turns)}")
+
+                if getattr(self.config, "agent_memory_enabled", True):
+                    user_memory, support_memory = self._refresh_agent_memories(
+                        user_memory, support_memory, turns[-2:], domain, goal
+                    )
+
+                if getattr(self.config, "rl_lite_enabled", True):
+                    rl_step = self._compute_rl_lite_step(turns, goal)
+                    u_meta["rl_lite"] = rl_step
+                    rl_trajectory.append(rl_step["reward"])
                 
                 # CRITICAL: Never check for goal satisfaction or break until we have at least min_turns
                 if len(turns) < min_turns_required:
@@ -306,13 +348,15 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                     turns.append({
                         "role": "SupportBot",
                         "text": confirm,
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
+                        "metadata": {"forced_completion": True},
                     })
                     conversation_history.append(turns[-1])
                     turns.append({
                         "role": "User",
                         "text": "That's all, thanks!",
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
+                        "metadata": {"forced_completion": True},
                     })
                     conversation_history.append(turns[-1])
                     if progress_callback:
@@ -360,7 +404,8 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                         user_turn = {
                             "role": "User",
                             "text": self._get_fallback_user_response(conversation_history, goal, domain),
-                            "timestamp": datetime.now().isoformat()
+                            "timestamp": datetime.now().isoformat(),
+                            "metadata": {"fallback": True},
                         }
                         turns.append(user_turn)
                         conversation_history.append(user_turn)
@@ -368,7 +413,8 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                         supportbot_turn = {
                             "role": "SupportBot",
                             "text": self._get_fallback_supportbot_response(goal, conversation_history, domain),
-                            "timestamp": datetime.now().isoformat()
+                            "timestamp": datetime.now().isoformat(),
+                            "metadata": {"fallback": True},
                         }
                         turns.append(supportbot_turn)
                         conversation_history.append(supportbot_turn)
@@ -388,7 +434,8 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                 supportbot_turn = {
                     "role": "SupportBot",
                     "text": self._get_fallback_supportbot_response(goal, conversation_history, domain),
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "metadata": {"fallback": True},
                 }
                 turns.append(supportbot_turn)
                 conversation_history.append(supportbot_turn)
@@ -398,7 +445,8 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                 user_turn = {
                     "role": "User",
                     "text": self._get_fallback_user_response(conversation_history, goal, domain),
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "metadata": {"fallback": True},
                 }
                 turns.append(user_turn)
                 conversation_history.append(user_turn)
@@ -410,22 +458,26 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         # CRITICAL: Never end on an open user question—add SupportBot answer then user satisfaction so dialogue closes properly
         if self._last_turn_is_open_request(turns) and len(turns) < max_turns * 2:
             try:
-                closing_bot = self._generate_supportbot_turn(
-                    goal, context, conversation_history, domain, experience_data
+                closing_bot, closing_meta = self._generate_supportbot_turn(
+                    goal, context, conversation_history, domain, experience_data,
+                    user_memory, support_memory,
                 )
             except Exception as e:
                 logger.warning(f"Final SupportBot turn failed: {e}; using fallback.")
                 closing_bot = self._get_fallback_supportbot_response(goal, conversation_history, domain)
+                closing_meta = {"fallback": True}
             turns.append({
                 "role": "SupportBot",
                 "text": closing_bot,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "metadata": closing_meta,
             })
             conversation_history.append(turns[-1])
             turns.append({
                 "role": "User",
                 "text": "Thank you, that's perfect!",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "metadata": {"closing_template": True},
             })
             conversation_history.append(turns[-1])
             logger.info(f"Dialogue {dialogue_id}: added closing SupportBot answer and user satisfaction so dialogue does not end on open user question.")
@@ -455,6 +507,15 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
             metadata["user_persona_traits"] = experience_data["user_persona_traits"]
         if experience_data.get("supportbot_style"):
             metadata["supportbot_style"] = experience_data["supportbot_style"]
+        if rl_trajectory:
+            metadata["rl_lite"] = {
+                "step_rewards": rl_trajectory,
+                "mean_reward": round(sum(rl_trajectory) / len(rl_trajectory), 4),
+                "weights": {
+                    "goal": getattr(self.config, "rl_goal_weight", 0.6),
+                    "coherence": getattr(self.config, "rl_coherence_weight", 0.4),
+                },
+            }
         dialogue_data = {
             "dialogue_id": dialogue_id,
             "goal": goal,
@@ -482,6 +543,103 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         if not parts:
             return ""
         return "\n".join(parts) + "\n"
+
+    def _memory_section_text(self, user_memory: List[str], support_memory: List[str]) -> str:
+        if not getattr(self.config, "agent_memory_enabled", True):
+            return ""
+        u = format_memory_lines("User facts (remembered)", user_memory)
+        s = format_memory_lines("SupportBot facts (remembered)", support_memory)
+        if not u and not s:
+            return ""
+        return "Tracked facts (stay consistent with these):\n" + u + s
+
+    def _refresh_agent_memories(
+        self,
+        user_memory: List[str],
+        support_memory: List[str],
+        recent_turns: List[Dict[str, Any]],
+        domain: str,
+        goal: str,
+    ) -> Tuple[List[str], List[str]]:
+        if not getattr(self.config, "agent_memory_enabled", True) or not recent_turns:
+            return user_memory, support_memory
+        hist = format_conversation_history(
+            [t for t in recent_turns if t.get("role") in ("User", "SupportBot")]
+        )
+        prompt = f"""You update two fact buffers for a goal-oriented dialogue simulation. Output ONLY valid JSON with this shape:
+{{"user_facts": ["...", ...], "support_facts": ["...", ...]}}
+
+Rules:
+- At most 8 strings each; short atomic facts only (preferences, dates, names, constraints the user stated; concrete commitments or bookings the assistant stated).
+- Merge with the prior lists; drop duplicates; on contradiction prefer newer dialogue.
+- Do not invent facts that are not supported by the dialogue.
+
+Domain: {domain}
+Goal: {goal}
+
+Prior user_facts: {json.dumps(user_memory)}
+Prior support_facts: {json.dumps(support_memory)}
+
+New lines to fold in:
+{hist}
+
+JSON only, no markdown."""
+        try:
+            raw = self.llm_client.generate_completion(
+                prompt,
+                temperature=0.15,
+                max_tokens=self.config.max_tokens_memory_refresh,
+            )
+            nu, ns = parse_memory_json(raw)
+            if not nu and not ns:
+                return user_memory, support_memory
+            prior_u = list(user_memory or [])
+            prior_s = list(support_memory or [])
+            for x in nu:
+                if x not in prior_u:
+                    prior_u.append(x)
+            for x in ns:
+                if x not in prior_s:
+                    prior_s.append(x)
+            return prior_u[-10:], prior_s[-10:]
+        except Exception as e:
+            logger.warning("Memory refresh failed, keeping prior buffers: %s", e)
+            return user_memory, support_memory
+
+    def _supportbot_tool_outputs(self, history: List[Dict[str, str]], domain: str, goal: str, context: str) -> Tuple[str, List[str]]:
+        if not getattr(self.config, "agent_tools_enabled", True):
+            return "", []
+        last_user = ""
+        for turn in reversed(history):
+            if turn.get("role") == "User":
+                last_user = (turn.get("text") or "").strip()
+                break
+        query = (last_user[:240] if last_user else goal[:240]).strip() or goal[:120]
+        search_out = tool_search_stub(query, domain, goal)
+        db_out = tool_db_lookup_stub(domain, goal, context)
+        block = format_tool_block_for_prompt(search_out, db_out)
+        return block, ["search", "db_lookup"]
+
+    def _compute_rl_lite_step(self, turns: List[Dict[str, Any]], goal: str) -> Dict[str, float]:
+        """Lite scalar signal: goal overlap + pairwise turn coherence (not full RL training)."""
+        conv = [t.get("text", "") for t in turns[-4:] if t.get("text")]
+        if len(conv) < 2:
+            return {"reward": 0.0, "goal_signal": 0.0, "coherence_signal": 0.0}
+        goal_words = set(re.findall(r"[a-z0-9']+", (goal or "").lower()))
+        joined = " ".join(conv).lower()
+        doc_words = set(re.findall(r"[a-z0-9']+", joined))
+        if not goal_words:
+            g = 0.0
+        else:
+            g = len(goal_words & doc_words) / len(goal_words)
+        coh_vals = []
+        for i in range(1, len(conv)):
+            coh_vals.append(calculate_similarity(conv[i - 1], conv[i]))
+        c = sum(coh_vals) / len(coh_vals) if coh_vals else 0.0
+        wg = float(getattr(self.config, "rl_goal_weight", 0.6))
+        wc = float(getattr(self.config, "rl_coherence_weight", 0.4))
+        r = wg * g + wc * c
+        return {"reward": round(r, 4), "goal_signal": round(g, 4), "coherence_signal": round(c, 4)}
 
     def _last_k_turns(self, history: List[Dict[str, str]], k: Optional[int] = None) -> List[Dict[str, str]]:
         """Return the last k conversation turns (excluding System), so we keep full goal + recent context."""
@@ -546,15 +704,17 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         return f"Domain grounding: {text}"
 
     def _generate_user_turn(
-        self, 
-        goal: str, 
-        context: str, 
-        user_persona: str, 
+        self,
+        goal: str,
+        context: str,
+        user_persona: str,
         history: List[Dict[str, str]],
         domain: str = "general",
-        experience_data: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """Generate a user turn using the User agent prompt, leaving flow to the LLM."""
+        experience_data: Optional[Dict[str, Any]] = None,
+        user_memory: Optional[List[str]] = None,
+        support_memory: Optional[List[str]] = None,
+    ) -> Tuple[str, Dict[str, Any]]:
+        """Generate a user turn; optional planning parse and memory-conditioned prompt."""
         recent = self._last_k_turns(history)
         history_text = format_conversation_history(recent)
         progress_hint = self._progress_hint_for_user(goal)
@@ -563,6 +723,9 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         if persona_traits:
             persona_traits = f"Communication style: {persona_traits}"
 
+        memory_section = self._memory_section_text(user_memory or [], support_memory or [])
+        planning_instruction = build_planning_instruction() if getattr(self.config, "agent_planning_enabled", True) else ""
+
         prompt = self.user_prompts["user"].format(
             domain=domain,
             goal=goal,
@@ -570,8 +733,10 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
             user_persona=user_persona,
             structured_goal=structured_goal,
             persona_traits=persona_traits,
+            memory_section=memory_section,
             history=history_text,
-            progress_hint=progress_hint
+            progress_hint=progress_hint,
+            planning_instruction=planning_instruction,
         )
 
         full_prompt = f"{self.user_prompts['system']}\n\n{prompt}"
@@ -580,12 +745,19 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         truncated_prompt = self._truncate_prompt(full_prompt, max_length=max_words)
 
         max_tokens_user = getattr(self.config, "max_tokens_user_turn", 60)
+        if getattr(self.config, "agent_planning_enabled", True):
+            max_tokens_user = max(max_tokens_user, getattr(self.config, "max_tokens_planning", 180))
+
         response = self.llm_client.generate_completion(
             truncated_prompt,
             temperature=self.config.temperature,
             top_p=self.config.top_p,
-            max_tokens=max_tokens_user
+            max_tokens=max_tokens_user,
         )
+
+        plan_note: Optional[str] = None
+        if getattr(self.config, "agent_planning_enabled", True):
+            plan_note, response = parse_plan_and_reply(response)
 
         cleaned_response = self._clean_response(response, role="User")
         cleaned_response = cleaned_response.strip()
@@ -602,19 +774,24 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                     break
 
         if not cleaned_response:
-            return "I need help with this."
+            cleaned_response = "I need help with this."
 
-        return cleaned_response
-    
+        meta: Dict[str, Any] = {}
+        if plan_note:
+            meta["plan"] = plan_note
+        return cleaned_response, meta
+
     def _generate_supportbot_turn(
-        self, 
-        goal: str, 
-        context: str, 
+        self,
+        goal: str,
+        context: str,
         history: List[Dict[str, str]],
         domain: str = "general",
-        experience_data: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """Generate a SupportBot turn using only the LLM with goal + context + history."""
+        experience_data: Optional[Dict[str, Any]] = None,
+        user_memory: Optional[List[str]] = None,
+        support_memory: Optional[List[str]] = None,
+    ) -> Tuple[str, Dict[str, Any]]:
+        """Generate SupportBot turn with simulated tool outputs and optional planning."""
         recent = self._last_k_turns(history)
         history_text = format_conversation_history(recent)
         structured_goal = self._format_structured_goal(experience_data)
@@ -623,7 +800,10 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
             supportbot_style = f"Style: {supportbot_style}"
         domain_grounding = self._get_domain_grounding(domain)
 
-        # Build prompt
+        tool_outputs, tools_used = self._supportbot_tool_outputs(history, domain, goal, context)
+        memory_section = self._memory_section_text(user_memory or [], support_memory or [])
+        planning_instruction = build_planning_instruction() if getattr(self.config, "agent_planning_enabled", True) else ""
+
         prompt = self.supportbot_prompts["supportbot"].format(
             domain=domain,
             goal=goal,
@@ -631,7 +811,10 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
             structured_goal=structured_goal,
             domain_grounding=domain_grounding,
             supportbot_style=supportbot_style,
-            history=history_text
+            tool_outputs=tool_outputs,
+            memory_section=memory_section,
+            history=history_text,
+            planning_instruction=planning_instruction,
         )
 
         full_prompt = f"{self.supportbot_prompts['system']}\n\n{prompt}"
@@ -640,12 +823,20 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
         truncated_prompt = self._truncate_prompt(full_prompt, max_length=max_words)
 
         max_tokens_supportbot = getattr(self.config, "max_tokens_supportbot_turn", 120)
+        if getattr(self.config, "agent_planning_enabled", True):
+            max_tokens_supportbot = max(max_tokens_supportbot, getattr(self.config, "max_tokens_planning", 180))
+
         response = self.llm_client.generate_completion(
             truncated_prompt,
             temperature=self.config.temperature,
             top_p=self.config.top_p,
-            max_tokens=max_tokens_supportbot
+            max_tokens=max_tokens_supportbot,
         )
+
+        plan_note: Optional[str] = None
+        if getattr(self.config, "agent_planning_enabled", True):
+            plan_note, response = parse_plan_and_reply(response)
+
         cleaned_response = self._clean_response(response, role="SupportBot")
         cleaned_response = cleaned_response.strip()
 
@@ -662,6 +853,8 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                     top_p=self.config.top_p,
                     max_tokens=max_tokens_supportbot,
                 )
+                if getattr(self.config, "agent_planning_enabled", True):
+                    _, retry_response = parse_plan_and_reply(retry_response)
                 retry_cleaned = self._clean_response(retry_response, role="SupportBot").strip()
                 if len(retry_cleaned.split()) >= 5 and retry_cleaned:
                     cleaned_response = retry_cleaned
@@ -676,7 +869,6 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                     prev_text = (prev_turn.get("text") or "").strip()
                     if prev_text and cleaned_response.lower() == prev_text.lower():
                         logger.warning("SupportBot response matched previous turn exactly; varying phrasing.")
-                        # Use last user message for slight variation if available
                         last_user_msg = ""
                         for turn in reversed(recent):
                             if turn.get("role") == "User":
@@ -686,9 +878,14 @@ Respond with only "YES" if the goal is COMPLETELY achieved with clear evidence; 
                         break
 
         if not cleaned_response:
-            return "I can help you with that."
+            cleaned_response = "I can help you with that."
 
-        return cleaned_response
+        meta: Dict[str, Any] = {}
+        if plan_note:
+            meta["plan"] = plan_note
+        if tools_used:
+            meta["tools_used"] = tools_used
+        return cleaned_response, meta
     
     def _check_goal_satisfied(
         self, 

@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 class LLMClient:
     """Client for interfacing with language model APIs."""
     
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, api_config: Optional[Dict[str, Any]] = None):
         """Initialize the LLM client with configuration."""
         self.config = config
-        self.api_config = config.get_api_config()
+        self.api_config = api_config if api_config is not None else config.get_api_config()
         self.session = self._create_session()
         # Simple in-memory cache for prompt responses (per-process, best-effort)
         # Key: (provider, model, prompt, temperature, top_p, max_tokens)

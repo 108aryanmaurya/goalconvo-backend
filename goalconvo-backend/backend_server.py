@@ -34,6 +34,7 @@ from goalconvo.experience_generator import ExperienceGenerator
 from goalconvo.multi_agent_simulator import DialogueSimulator
 from goalconvo.quality_judge import QualityJudge
 from goalconvo.dataset_store import DatasetStore
+from goalconvo.utils import validate_dialogue_format
 from goalconvo.evaluator import Evaluator
 from goalconvo.dataset_versioning import DatasetVersionManager
 from goalconvo.human_evaluator import HumanEvaluator
@@ -76,11 +77,13 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 # Initialize backend components
 config = Config()
-llm_client = LLMClient(config)
+generation_llm_client = LLMClient(config, api_config=config.get_generation_api_config())
+evaluation_llm_client = LLMClient(config, api_config=config.get_evaluation_api_config())
+llm_client = generation_llm_client
 dataset_store = DatasetStore(config)
-experience_generator = ExperienceGenerator(config, llm_client, dataset_store)
-dialogue_simulator = DialogueSimulator(config, llm_client)
-quality_judge = QualityJudge(config, llm_client)
+experience_generator = ExperienceGenerator(config, generation_llm_client, dataset_store)
+dialogue_simulator = DialogueSimulator(config, generation_llm_client)
+quality_judge = QualityJudge(config, evaluation_llm_client)
 evaluator = Evaluator(config)
 generator = GoalConvoGenerator(config)
 
@@ -123,7 +126,7 @@ def convert_to_frontend_format(dialogue: Dict[str, Any], experience_data: Option
         "judge_score": quality_score * 5.0,  # Scale to 0-5 range
         "mtld": 0.0,  # Would need to compute this
         "provenance": {
-            "generator_model": metadata.get("model_version", config.mistral_model),
+            "generator_model": metadata.get("model_version", config.get_generation_api_config().get("model", config.mistral_model)),
             "prompt_version": "agent_prompt_v1",
             "temperature": config.temperature,
             "shot_ids": [],
@@ -400,7 +403,7 @@ def run_pipeline():
                                 "max_turns": config.max_turns,
                                 "min_turns": config.min_turns,
                                 "few_shot_examples": config.few_shot_examples,
-                                "model": config.get_api_config().get("model", config.mistral_model),
+                                "model": config.get_generation_api_config().get("model", config.mistral_model),
                                 "overrides": overrides,
                                 "experiment_tag": experiment_tag,
                             },
@@ -453,14 +456,38 @@ def run_pipeline():
         }), 500
 
 
+def _validate_uploaded_dialogues_payload(raw: Any) -> tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
+    """
+    Validate dialogues for the comprehensive evaluation pipeline.
+    Matches goalconvo.utils.validate_dialogue_format (dialogue_id, goal, domain, turns; roles User|SupportBot).
+    """
+    if not isinstance(raw, list):
+        return None, "dialogues must be a JSON array"
+    if len(raw) == 0:
+        return None, "dialogues array is empty"
+    if len(raw) > 500:
+        return None, "Maximum 500 dialogues per request"
+    for i, item in enumerate(raw):
+        if not isinstance(item, dict):
+            return None, f"dialogues[{i}] must be an object"
+        if not validate_dialogue_format(item):
+            return None, (
+                f"dialogues[{i}] failed validation: require dialogue_id, goal, domain (string), "
+                "turns (array of {role, text} with role User or SupportBot)"
+            )
+    return raw, None
+
+
 @app.route('/api/run-evaluation', methods=['POST'])
 def run_evaluation():
-    """Run comprehensive evaluation on the current dataset and stream updates via WebSocket."""
+    """Run comprehensive evaluation on the current dataset or on uploaded dialogues; stream via WebSocket."""
     try:
         data = request.json or {}
         session_id = data.get('session_id', request.sid if hasattr(request, 'sid') else 'default')
         limit = data.get('limit', 500)
         domains = data.get('domains', None)
+        uploaded_dialogues = data.get("dialogues")
+
         if domains is not None:
             if not isinstance(domains, list) or len(domains) == 0:
                 return jsonify({"error": "domains must be a non-empty list when provided"}), 400
@@ -470,6 +497,12 @@ def run_evaluation():
                 return jsonify({
                     "error": f"Invalid domains: {invalid_domains}. Valid domains are: {valid_domains}"
                 }), 400
+
+        if uploaded_dialogues is not None:
+            normalized, err = _validate_uploaded_dialogues_payload(uploaded_dialogues)
+            if err:
+                return jsonify({"error": err}), 400
+            uploaded_dialogues = normalized
 
         def serialize_for_json(obj):
             if isinstance(obj, datetime):
@@ -493,7 +526,7 @@ def run_evaluation():
             except Exception as e:
                 logger.error(f"Error emitting {event_type}: {e}")
 
-        def run_evaluation_thread(eval_limit, eval_domains):
+        def run_evaluation_thread(eval_limit, eval_domains, uploaded=None):
             try:
                 # Emit immediately so the client sees progress (client must be in room before POST)
                 emit_callback('step_start', {
@@ -505,35 +538,42 @@ def run_evaluation():
                     'message': 'Loading dialogues...',
                     'step': 'evaluation'
                 })
-                # Decide which domains to load from:
-                # - if eval_domains provided: use those
-                # - else: load from all existing domain dirs under synthetic_dir
-                synthetic_dir = Path(config.synthetic_dir)
-                if eval_domains and isinstance(eval_domains, list) and len(eval_domains) > 0:
-                    all_domain_dirs = list(eval_domains)
-                else:
-                    all_domain_dirs = [p.name for p in synthetic_dir.iterdir() if p.is_dir()] if synthetic_dir.exists() else list(getattr(config, 'domains', ['hotel', 'restaurant', 'taxi', 'train', 'attraction']))
-                    if not all_domain_dirs:
-                        all_domain_dirs = getattr(config, 'domains', ['hotel', 'restaurant', 'taxi', 'train', 'attraction'])
-                pool_size = max(eval_limit * 20, 500)
-                all_dialogues = dataset_store.load_dialogues(limit=pool_size, domains_override=all_domain_dirs)
-                if not all_dialogues:
-                    emit_callback('evaluation_error', {
-                        'message': 'No dialogues found. Run dialogue generation first.'
+                if uploaded is not None:
+                    generated_dialogues = uploaded
+                    emit_callback('log', {
+                        'message': f'Evaluating {len(generated_dialogues)} uploaded dialogues...',
+                        'step': 'evaluation'
                     })
-                    return
-                # Sort by timestamp (always string for comparable sort) and take latest N
-                def _dialogue_timestamp(d):
-                    meta = d.get("metadata", {}) or {}
-                    prov = d.get("provenance", {}) or {}
-                    raw = meta.get("generated_at") or prov.get("timestamp") or ""
-                    return str(raw) if raw is not None else ""
-                all_dialogues.sort(key=_dialogue_timestamp)
-                generated_dialogues = all_dialogues[-eval_limit:]  # latest N
-                emit_callback('log', {
-                    'message': f'Evaluating latest {len(generated_dialogues)} dialogues...',
-                    'step': 'evaluation'
-                })
+                else:
+                    # Decide which domains to load from:
+                    # - if eval_domains provided: use those
+                    # - else: load from all existing domain dirs under synthetic_dir
+                    synthetic_dir = Path(config.synthetic_dir)
+                    if eval_domains and isinstance(eval_domains, list) and len(eval_domains) > 0:
+                        all_domain_dirs = list(eval_domains)
+                    else:
+                        all_domain_dirs = [p.name for p in synthetic_dir.iterdir() if p.is_dir()] if synthetic_dir.exists() else list(getattr(config, 'domains', ['hotel', 'restaurant', 'taxi', 'train', 'attraction']))
+                        if not all_domain_dirs:
+                            all_domain_dirs = getattr(config, 'domains', ['hotel', 'restaurant', 'taxi', 'train', 'attraction'])
+                    pool_size = max(eval_limit * 20, 500)
+                    all_dialogues = dataset_store.load_dialogues(limit=pool_size, domains_override=all_domain_dirs)
+                    if not all_dialogues:
+                        emit_callback('evaluation_error', {
+                            'message': 'No dialogues found. Run dialogue generation first.'
+                        })
+                        return
+                    # Sort by timestamp (always string for comparable sort) and take latest N
+                    def _dialogue_timestamp(d):
+                        meta = d.get("metadata", {}) or {}
+                        prov = d.get("provenance", {}) or {}
+                        raw = meta.get("generated_at") or prov.get("timestamp") or ""
+                        return str(raw) if raw is not None else ""
+                    all_dialogues.sort(key=_dialogue_timestamp)
+                    generated_dialogues = all_dialogues[-eval_limit:]  # latest N
+                    emit_callback('log', {
+                        'message': f'Evaluating latest {len(generated_dialogues)} dialogues...',
+                        'step': 'evaluation'
+                    })
                 multiwoz_file = Path(config.multiwoz_dir) / "processed_dialogues.json"
                 reference_dialogues = None
                 if multiwoz_file.exists():
@@ -571,12 +611,13 @@ def run_evaluation():
                     'error': str(e)
                 })
 
-        socketio.start_background_task(run_evaluation_thread, limit, domains)
+        socketio.start_background_task(run_evaluation_thread, limit, domains, uploaded_dialogues)
 
         return jsonify({
             "success": True,
             "message": "Evaluation started",
-            "session_id": session_id
+            "session_id": session_id,
+            "source": "upload" if uploaded_dialogues is not None else "dataset"
         })
     except Exception as e:
         logger.error(f"Error starting evaluation: {e}")

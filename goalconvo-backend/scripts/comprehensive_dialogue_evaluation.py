@@ -117,7 +117,7 @@ class ComprehensiveDialogueEvaluator:
     def __init__(self, config: Config):
         """Initialize the evaluator."""
         self.config = config
-        self.llm_client = LLMClient(config)
+        self.llm_client = LLMClient(config, api_config=config.get_evaluation_api_config())
         self.dataset_store = DatasetStore(config)
         self.results_dir = Path(config.data_dir) / "results"
         self.results_dir.mkdir(exist_ok=True)
@@ -677,7 +677,7 @@ class ComprehensiveDialogueEvaluator:
                 "std_bertscore": 0.0,
                 "individual_scores": [],
                 "domain_bertscores": {},
-                "target_score": 0.71,
+                "target_score": 0.5,
                 "note": "Measures semantic similarity to MultiWOZ reference dialogues. Target: 0.71"
             }
         

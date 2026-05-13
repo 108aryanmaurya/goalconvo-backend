@@ -1,0 +1,117 @@
+[
+  {
+    "dialogue_id": "3190d748-2dcf-44fb-931a-10690e1c7dfb",
+    "goal": "Book a room at Huntingdon Marriott for tonight",
+    "domain": "hotel",
+    "context": "I'm on a business trip and will be arriving in Huntingdon late this evening. I need a comfortable hotel room that's easily accessible from the highway and has good amenities. Since I'll be staying for just one night, I'd prefer a hotel that offers a quick and efficient check-in process.",
+    "user_persona": "Emily (Formal and concise)",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I'm looking for a hotel room in Huntingdon for tonight. I've heard good things about the Huntingdon Marriott - can you help me book a room there?",
+        "timestamp": "2026-03-28T07:02:05.390662"
+      },
+      {
+        "role": "SupportBot",
+        "text": "I'd be happy to help you book a room at the Huntingdon Marriott for tonight. Let me just check the availability of their single rooms, which should offer a comfortable and efficient stay given your late arrival and brief visit. I can confirm that they have a mid-range option available, and I'll be able to provide you with more details on their rates and packages, as well as their check-in process, in just a moment.",
+        "timestamp": "2026-03-28T07:02:06.309806"
+      },
+      {
+        "role": "User",
+        "text": "You've confirmed that the Huntingdon Marriott has a mid-range single room available for tonight, which is great. Could you please provide more details on the rates and packages they offer, as well as the check-in process, so I can finalize my booking?",
+        "timestamp": "2026-03-28T07:02:06.796244"
+      },
+      {
+        "role": "SupportBot",
+        "text": "The Huntingdon Marriott offers a few different packages for their single rooms, including a standard rate that includes complimentary Wi-Fi and access to their fitness center, as well as a slightly higher rate that adds on a breakfast buffet and parking. Their check-in process is typically quite efficient, with a dedicated desk and the option to check in online beforehand to speed things up. I can go ahead and book a room for you under the standard rate, which would come with a reference number of HM-123, if",
+        "timestamp": "2026-03-28T07:02:07.437575"
+      },
+      {
+        "role": "User",
+        "text": "You mentioned a reference number of HM-123 for the standard rate, which includes complimentary Wi-Fi and access to the fitness center; could you confirm the total cost for the room and the check-in time for this booking?",
+        "timestamp": "2026-03-28T07:02:07.808139"
+      },
+      {
+        "role": "SupportBot",
+        "text": "For the standard rate with complimentary Wi-Fi and access to the fitness center, the total cost for the room would be a mid-range option, and the check-in time is flexible, but I can confirm that you can check in anytime after 3 pm today. If you'd like to proceed with this booking, I can confirm the details and provide you with a reference number, such as HM-123, to ensure a smooth check-in process. Would you like me to finalize the booking with the standard",
+        "timestamp": "2026-03-28T07:02:08.516714"
+      },
+      {
+        "role": "User",
+        "text": "You've mentioned that the check-in time is flexible, but could you please specify the latest check-in time available for my booking, and also confirm if the reference number HM-123 is indeed assigned to my room if I proceed with the standard rate?",
+        "timestamp": "2026-03-28T07:02:09.177952"
+      },
+      {
+        "role": "SupportBot",
+        "text": "The latest check-in time available for your booking at the Huntingdon Marriott is 11 pm today, and if you proceed with the standard rate, the reference number HM-123 will indeed be assigned to your room, ensuring a smooth check-in process. I can confirm that this reference number will be linked to your booking, which includes complimentary Wi-Fi and access to the fitness center. Would you like me to finalize the booking with these details, and I'll provide you with any additional information you may need",
+        "timestamp": "2026-03-28T07:02:09.815401"
+      },
+      {
+        "role": "User",
+        "text": "Thank you, that's perfect!",
+        "timestamp": "2026-03-28T07:02:09.815428"
+      }
+    ],
+    "metadata": {
+      "num_turns": 9,
+      "generated_at": "2026-03-28T07:02:09.815698",
+      "model_version": "mistralai/Mistral-7B-Instruct-v0.1",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 4.425,
+      "generation_start_time": "2026-03-28T07:02:05.390605",
+      "generation_end_time": "2026-03-28T07:02:09.815696",
+      "goal_complexity": 7,
+      "supportbot_style": "Friendly and helpful",
+      "quality_score": 0.84,
+      "quality_assessment": {
+        "dialogue_id": "3190d748-2dcf-44fb-931a-10690e1c7dfb",
+        "domain": "hotel",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 9,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 9 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 5.0,
+          "goal_relevance": true,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.84,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-03-28T07:02:10.418130"
+      }
+    }
+  }
+]

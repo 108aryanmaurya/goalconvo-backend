@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Users, Filter, Database, TrendingUp, Play, RotateCcw, Download, ClipboardList, GitBranch, Sun, Moon } from 'lucide-react';
+import { Brain, Users, Filter, Database, TrendingUp, Play, RotateCcw, Download, ClipboardList, GitBranch, Sun, Moon, Upload } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { API_CONFIG } from '@/lib/api-config';
@@ -13,6 +13,30 @@ import DatasetConstructor from './DatasetConstructor';
 import Evaluator from './Evaluator';
 import Versions from './Versions';
 import HumanEvaluation from './HumanEvaluation';
+
+/** Matches backend `validate_dialogue_format` + comprehensive evaluation pipeline. */
+const EVALUATION_DIALOGUES_JSON_SCHEMA = `{
+  "dialogues": [
+    {
+      "dialogue_id": "unique-id-string",
+      "goal": "Task the user wants completed",
+      "domain": "hotel",
+      "context": "optional — scenario details",
+      "turns": [
+        { "role": "User", "text": "…", "timestamp": "optional ISO8601" },
+        { "role": "SupportBot", "text": "…", "timestamp": "optional" }
+      ],
+      "metadata": {},
+      "goal_data": {}
+    }
+  ]
+}
+
+You may also upload a raw JSON array: [ { "dialogue_id": "…", "goal": "…", "domain": "…", "turns": [ … ] }, … ]
+
+Required per dialogue: dialogue_id, goal, domain, turns.
+Each turn: role must be "User" or "SupportBot", and "text" is required.
+Optional: timestamp on turns (used for response-time metrics). Up to 500 dialogues per request.`;
 
 interface Experience {
   experience_id: string;
@@ -214,6 +238,8 @@ export default function GoalConvoDashboard() {
   // Evaluation configuration (separate from generation)
   const [evaluationDomains, setEvaluationDomains] = useState<string[]>([]);
   const [evaluationLimit, setEvaluationLimit] = useState<number>(10);
+  const [uploadedEvaluationDialogues, setUploadedEvaluationDialogues] = useState<unknown[]>([]);
+  const [uploadedEvaluationFileNames, setUploadedEvaluationFileNames] = useState<string[]>([]);
 
   // Check backend health on mount and periodically
   useEffect(() => {
@@ -1024,7 +1050,7 @@ export default function GoalConvoDashboard() {
         stepName: 'Evaluation',
         endpoint: '/api/run-evaluation',
         status: 'success',
-        message: 'Evaluation started'
+        message: 'Evaluation started (dataset)'
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -1040,6 +1066,89 @@ export default function GoalConvoDashboard() {
     }
   };
 
+  /** Same pipeline as dataset evaluation; body includes `dialogues` (validated server-side). */
+  const runEvaluationWithUploadedDialogues = async (dialogues: unknown[]) => {
+    if (!backendConnected) {
+      const isHealthy = await API_CONFIG.checkHealth();
+      if (!isHealthy) {
+        alert(`Backend not accessible at ${API_CONFIG.baseUrl}. Please start the backend first.`);
+        return;
+      }
+    }
+    if (!Array.isArray(dialogues) || dialogues.length === 0) {
+      alert('No dialogues to evaluate.');
+      return;
+    }
+    setEvaluationStepMessages([]);
+    setIsEvaluationRunning(true);
+    try {
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('join_session', { session_id: sessionIdRef.current });
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      const response = await fetch(API_CONFIG.getUrl(API_CONFIG.endpoints.runEvaluation), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionIdRef.current,
+          dialogues
+        })
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || response.statusText);
+      }
+      addRequestLog({
+        stepId: 'evaluation',
+        stepName: 'Evaluation',
+        endpoint: '/api/run-evaluation',
+        status: 'success',
+        message: `Evaluation started (upload, ${dialogues.length} dialogues)`
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      addRequestLog({
+        stepId: 'evaluation',
+        stepName: 'Evaluation',
+        endpoint: '/api/run-evaluation',
+        status: 'error',
+        message: msg
+      });
+      setIsEvaluationRunning(false);
+      alert(`Failed to start evaluation: ${msg}`);
+    }
+  };
+
+  const extractDialoguesFromUploadedJson = (parsed: unknown): unknown[] => {
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object' && 'dialogues' in parsed) {
+      const d = (parsed as { dialogues: unknown }).dialogues;
+      if (Array.isArray(d)) return d;
+    }
+    throw new Error('JSON must be a dialogue array or an object with a "dialogues" array (same shape as pipeline export).');
+  };
+
+  const onEvaluationJsonFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length === 0) return;
+    try {
+      const parsedDialoguesPerFile = await Promise.all(
+        files.map(async (file) => {
+          const text = await file.text();
+          const parsed = JSON.parse(text) as unknown;
+          return extractDialoguesFromUploadedJson(parsed);
+        })
+      );
+      const mergedDialogues = parsedDialoguesPerFile.flat();
+      setUploadedEvaluationDialogues((prev) => [...prev, ...mergedDialogues]);
+      setUploadedEvaluationFileNames((prev) => [...prev, ...files.map((file) => file.name)]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Invalid JSON file';
+      alert(msg);
+    }
+  };
+
   const resetPipeline = () => {
     console.log('Reset Pipeline clicked');
     setIsRunning(false);
@@ -1049,6 +1158,8 @@ export default function GoalConvoDashboard() {
     setRequestLogs([]);
     setEvaluationDomains([]);
     setEvaluationLimit(10);
+    setUploadedEvaluationDialogues([]);
+    setUploadedEvaluationFileNames([]);
     setPipelineData({
       experiences: [],
       conversations: [],
@@ -1587,7 +1698,54 @@ export default function GoalConvoDashboard() {
                     </ul>
                   </div>
                 </div>
-              ) : pipelineData.evaluations != null && typeof pipelineData.evaluations === 'object' ? (
+              ) : (
+                <>
+                  <div className="mb-6 rounded-xl border border-indigo-400/25 bg-indigo-500/10 p-4 text-left">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <Upload className="w-5 h-5 text-indigo-300 shrink-0" />
+                      <h4 className="text-sm font-semibold text-white">Evaluate from dialogues JSON</h4>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-3">
+                      Upload one or more files produced by this app’s export (or matching the schema below). Uses the same
+                      comprehensive evaluation as “Run Evaluation” on the dataset.
+                    </p>
+                    <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-sm font-medium cursor-pointer border border-indigo-400/40">
+                      <Upload className="w-4 h-4" />
+                      Choose JSON files
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        multiple
+                        className="hidden"
+                        onChange={onEvaluationJsonFileSelected}
+                      />
+                    </label>
+                    {uploadedEvaluationFileNames.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs text-indigo-100 mb-3">
+                          Loaded {uploadedEvaluationFileNames.length} file(s), {uploadedEvaluationDialogues.length} dialogue(s).
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => runEvaluationWithUploadedDialogues(uploadedEvaluationDialogues)}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-sky-500 text-white text-sm font-semibold shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition-all"
+                        >
+                          <Play className="w-4 h-4" />
+                          Run Evaluation (Uploaded JSON)
+                        </button>
+                      </div>
+                    )}
+                    <details className="mt-4 group">
+                      <summary className="text-xs text-indigo-200 cursor-pointer hover:text-white">
+                        Expected JSON schema (evaluation pipeline)
+                      </summary>
+                      <pre className="mt-2 p-3 rounded-lg bg-black/40 border border-white/10 text-[11px] text-gray-300 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                        {EVALUATION_DIALOGUES_JSON_SCHEMA}
+                      </pre>
+                    </details>
+                  </div>
+
+                  {pipelineData.evaluations != null && typeof pipelineData.evaluations === 'object' ? (
                 <Evaluator
                   key={`evaluator-${pipelineRunId}`}
                   dataset={pipelineData.dataset}
@@ -1744,6 +1902,8 @@ export default function GoalConvoDashboard() {
                     Run Evaluation
                   </button>
                 </div>
+              )}
+                </>
               )}
             </motion.div>
           ) : (
