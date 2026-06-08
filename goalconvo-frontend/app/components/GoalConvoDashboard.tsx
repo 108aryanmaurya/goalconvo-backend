@@ -2,14 +2,13 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Users, Filter, Database, TrendingUp, Play, RotateCcw, Download, ClipboardList, GitBranch, Sun, Moon, Upload } from 'lucide-react';
+import { Brain, Users, Filter, TrendingUp, Play, RotateCcw, Download, ClipboardList, GitBranch, Sun, Moon, Upload } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { API_CONFIG } from '@/lib/api-config';
 import ExperienceGenerator from './ExperienceGenerator';
 import MultiAgentSimulator from './MultiAgentSimulator';
 import PostProcessor from './PostProcessor';
-import DatasetConstructor from './DatasetConstructor';
 import Evaluator from './Evaluator';
 import Versions from './Versions';
 import HumanEvaluation from './HumanEvaluation';
@@ -770,32 +769,6 @@ export default function GoalConvoDashboard() {
         />
       )
     },
-    // {
-    //   id: 'dataset',
-    //   name: 'Dataset Construction',
-    //   description: 'Compile high-quality dialogues into structured dataset',
-    //   icon: <Database className="w-6 h-6" />,
-    //   status: 'pending',
-    //   progress: 0,
-    //   component: (
-    //     <DatasetConstructor
-    //       key={`dataset-${pipelineRunId}-${currentStep}`}
-    //       filteredConversations={pipelineData.filteredConversations}
-    //       dataset={pipelineData.dataset}
-    //       conversations={pipelineData.conversations}
-    //       autoStart={false}
-    //       onComplete={(data) => handleStepComplete(3, data)}
-    //       onLog={(log) =>
-    //         addRequestLog({
-    //           stepId: 'dataset',
-    //           stepName: 'Dataset Construction',
-    //           endpoint: '/api/run-pipeline',
-    //           ...log,
-    //         })
-    //       }
-    //     />
-    //   )
-    // },
     {
       id: 'evaluation',
       name: 'Evaluation',
@@ -897,7 +870,7 @@ export default function GoalConvoDashboard() {
     if (!backendConnected) {
       const isHealthy = await API_CONFIG.checkHealth();
       if (!isHealthy) {
-        const errorMsg = `Backend server is not accessible at ${API_CONFIG.baseUrl}. Please ensure the backend server is running.\n\nTo start the backend:\ncd goalconvo-2\n./start_backend.sh`;
+        const errorMsg = `Backend server is not accessible at ${API_CONFIG.baseUrl}. Please ensure the backend server is running.\n\nTo start the backend:\ncd goalconvo-backend\n./start_backend.sh`;
         alert(errorMsg);
         addRequestLog({
           stepId: 'pipeline',
@@ -1001,7 +974,7 @@ export default function GoalConvoDashboard() {
       // Provide helpful error message for network errors
       let userMessage = errorMessage;
       if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
-        userMessage = `Cannot connect to backend server at ${API_CONFIG.baseUrl}. Please ensure:\n1. Backend server is running (cd goalconvo-2 && ./start_backend.sh)\n2. Backend is accessible at ${API_CONFIG.baseUrl}\n3. No firewall is blocking the connection`;
+        userMessage = `Cannot connect to backend server at ${API_CONFIG.baseUrl}. Please ensure:\n1. Backend server is running (cd goalconvo-backend && ./start_backend.sh)\n2. Backend is accessible at ${API_CONFIG.baseUrl}\n3. No firewall is blocking the connection`;
       }
       
       addRequestLog({
