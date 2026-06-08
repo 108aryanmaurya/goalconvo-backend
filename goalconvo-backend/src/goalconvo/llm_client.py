@@ -25,9 +25,9 @@ class LLMClient:
         self.api_config = api_config if api_config is not None else config.get_api_config()
         self.session = self._create_session()
         # Simple in-memory cache for prompt responses (per-process, best-effort)
-        # Key: (provider, model, prompt, temperature, top_p, max_tokens)
+        # Key: (provider, model, prompt, temperature, top_p, max_tokens, seed_or_-1)
         # Value: generated text
-        self._cache: Dict[Tuple[str, str, str, float, float, int], str] = {}
+        self._cache: Dict[Tuple[str, str, str, float, float, int, int], str] = {}
         self._cache_max_size: int = 256
         
     def _create_session(self) -> requests.Session:
@@ -45,7 +45,13 @@ class LLMClient:
         session.mount("https://", adapter)
         
         return session
-    
+
+    def _maybe_add_seed(self, data: Dict[str, Any]) -> None:
+        """Attach OpenAI-style ``seed`` when :attr:`Config.experiment_seed` is set (provider may ignore)."""
+        s = getattr(self.config, "experiment_seed", None)
+        if isinstance(s, int):
+            data["seed"] = s
+
     def generate_completion(
         self,
         prompt: str,
@@ -77,9 +83,14 @@ class LLMClient:
 
         provider = self.api_config["provider"]
         model = self.api_config.get("model", "")
+        seed_key = (
+            int(self.config.experiment_seed)
+            if isinstance(getattr(self.config, "experiment_seed", None), int)
+            else -1
+        )
 
         # Build a simple cache key (ignore kwargs for now to keep it small)
-        cache_key = (provider, model, prompt, float(temperature), float(top_p), int(max_tokens))
+        cache_key = (provider, model, prompt, float(temperature), float(top_p), int(max_tokens), seed_key)
 
         # Return cached response when available
         cached = self._cache.get(cache_key)
@@ -140,7 +151,8 @@ class LLMClient:
             "max_tokens": max_tokens,
             **kwargs
         }
-        
+        self._maybe_add_seed(data)
+
         try:
             response = self.session.post(
                 url,
@@ -324,6 +336,7 @@ class LLMClient:
             "top_p": top_p,
             "max_completion_tokens": max_tokens,
         }
+        self._maybe_add_seed(data)
         try:
             response = self.session.post(
                 url,
@@ -376,6 +389,7 @@ class LLMClient:
             "max_tokens": max_tokens,
             **kwargs
         }
+        self._maybe_add_seed(data)
         try:
             response = self.session.post(
                 url,
@@ -413,6 +427,7 @@ class LLMClient:
             "max_tokens": max_tokens,
             **kwargs
         }
+        self._maybe_add_seed(data)
         try:
             response = self.session.post(
                 url,
@@ -451,7 +466,8 @@ class LLMClient:
             "max_tokens": max_tokens,
             **kwargs
         }
-        
+        self._maybe_add_seed(data)
+
         try:
             response = self.session.post(
                 url,

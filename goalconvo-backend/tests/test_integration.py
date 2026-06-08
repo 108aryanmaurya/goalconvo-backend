@@ -207,7 +207,7 @@ class TestGoalConvoIntegration:
         ]
         
         # Run evaluation
-        with patch('goalconvo.evaluator.bert_score') as mock_bert_score:
+        with patch("goalconvo.evaluation.bertscore_eval.bert_score") as mock_bert_score:
             # Mock BERTScore response
             mock_bert_score.return_value = ([0.8], [0.8], [0.8])
             

@@ -45,6 +45,18 @@ class GoalConvoGenerator:
         self.dialogue_simulator = DialogueSimulator(config, self.generation_llm_client)
         self.quality_judge = QualityJudge(config, self.evaluation_llm_client)
         
+        # Optional experiment / reproducibility run (dialogues + artifacts under data/experiments/…)
+        self.experiment_run = None
+        if getattr(config, "experiment_tracking", False):
+            from goalconvo.experiments.tracking import create_experiment_run
+
+            self.experiment_run = create_experiment_run(
+                config,
+                self.generation_llm_client,
+                experiment_name=getattr(config, "experiment_name", "") or "",
+            )
+            logger.info("Experiment tracking: run directory %s", self.experiment_run.run_root)
+        
         # Generation statistics
         self.stats = {
             "total_generated": 0,
@@ -280,6 +292,29 @@ class GoalConvoGenerator:
 
         # Compute basic evaluation metrics (for logging/summary only) from this run's dialogues
         evaluation_metrics = self._compute_evaluation_metrics(run_accepted_dialogues)
+        if self.experiment_run is not None:
+            self.experiment_run.record_metrics(
+                "generation_eval_summary",
+                {"metrics": evaluation_metrics, "num_dialogues_evaluated": len(run_accepted_dialogues)},
+            )
+            self.experiment_run.record_metrics(
+                "generation_stats",
+                {
+                    "total_generated": generated_count,
+                    "total_accepted": accepted_count,
+                    "total_rejected": generated_count - accepted_count,
+                    "by_domain": self.stats.get("by_domain", {}),
+                },
+            )
+            self.stats["experiment_run_id"] = self.experiment_run.run_id
+            self.stats["experiment_run_dir"] = str(self.experiment_run.run_root)
+            self.experiment_run.finalize(
+                {
+                    "total_generated": generated_count,
+                    "total_accepted": accepted_count,
+                    "evaluation_metrics_keys": list(evaluation_metrics.keys()),
+                }
+            )
         
         logger.info(f"\n{'='*80}")
         logger.info("GENERATION SUMMARY")
@@ -288,9 +323,8 @@ class GoalConvoGenerator:
         logger.info(f"Acceptance rate: {(accepted_count/generated_count*100) if generated_count > 0 else 0:.1f}%")
         logger.info(f"{'='*80}\n")
         
-        # Do NOT emit pipeline_complete here. When run from backend_server, the server runs
-        # comprehensive evaluation and emits pipeline_complete once with full metrics, so the
-        # frontend only shows the detailed evaluation panel (no duplicate / less-detailed first).
+        # Do NOT emit pipeline_complete here: backend_server emits it after generation (and
+        # optional versioning). Comprehensive evaluation is a separate step (/api/run-evaluation).
         
         return self.stats
     
@@ -382,7 +416,10 @@ class GoalConvoGenerator:
 
                 # Simulate dialogue (uses last-K-turns context, domain schema, progress hint, stricter goal-check, config truncation)
                 dialogue = self.dialogue_simulator.simulate_dialogue(
-                    experience_data, progress_callback=on_live_progress, on_error=_on_simulate_error
+                    experience_data,
+                    progress_callback=on_live_progress,
+                    on_error=_on_simulate_error,
+                    experiment_run=self.experiment_run,
                 )
                 dialogue_id = dialogue.get('dialogue_id', 'unknown')
                 num_turns = len(dialogue.get('turns', []))
@@ -629,6 +666,13 @@ def main():
     parser.add_argument("--config", type=str, help="Path to config file")
     parser.add_argument("--log-level", type=str, default="INFO", 
                        choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    parser.add_argument(
+        "--experiment-tracking",
+        action="store_true",
+        help="Write run folder under data/experiments with dialogues, planner/reflection artifacts, metrics, logs",
+    )
+    parser.add_argument("--experiment-name", type=str, default="", help="Human-readable experiment label for run folder naming")
+    parser.add_argument("--experiment-seed", type=int, default=None, help="RNG + API seed (when provider supports seed)")
     
     args = parser.parse_args()
     
@@ -644,6 +688,12 @@ def main():
     
     # Load configuration
     config = Config()
+    if args.experiment_tracking:
+        config.experiment_tracking = True
+    if args.experiment_name:
+        config.experiment_name = args.experiment_name
+    if args.experiment_seed is not None:
+        config.experiment_seed = args.experiment_seed
     
     # Initialize generator
     generator = GoalConvoGenerator(config)
@@ -717,7 +767,7 @@ def main():
                 import subprocess
                 import sys
                 
-                eval_script = Path(__file__).parent / "comprehensive_evaluate.py"
+                eval_script = Path(__file__).parent / "comprehensive_dialogue_evaluation.py"
                 if eval_script.exists():
                     result = subprocess.run(
                         [sys.executable, str(eval_script)],
@@ -727,15 +777,15 @@ def main():
                     )
                     if result.returncode == 0:
                         logger.info("Evaluation completed successfully!")
-                        logger.info("Check data/results/comprehensive_evaluation_report_latest.txt for detailed report")
+                        logger.info("Check data/results/ for detailed evaluation output")
                     else:
                         logger.error(f"Evaluation failed: {result.stderr}")
                 else:
                     logger.warning("Comprehensive evaluation script not found")
-                    logger.info("You can run evaluation manually: python scripts/comprehensive_evaluate.py")
+                    logger.info("You can run evaluation manually: python scripts/comprehensive_dialogue_evaluation.py")
             except Exception as e:
                 logger.error(f"Error running evaluation: {e}")
-                logger.info("You can run evaluation manually: python scripts/comprehensive_evaluate.py")
+                logger.info("You can run evaluation manually: python scripts/comprehensive_dialogue_evaluation.py")
         
         return 0
         

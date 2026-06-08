@@ -15,11 +15,20 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from bert_score import score as bert_score
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 from .config import Config
+from .evaluation import (
+    BertScoreEvaluator,
+    CoherenceEvaluator,
+    DiversityEvaluator,
+    GoalCompletionEvaluator,
+    GoalEvaluator,
+)
+from .evaluation.research_evaluator import (
+    ResearchEvaluationReport,
+    ResearchEvaluationSuite,
+    evaluate_batch_chunks,
+)
 from .utils import load_json, save_json, ensure_dir
 
 logger = logging.getLogger(__name__)
@@ -38,6 +47,61 @@ class Evaluator:
         
         # Cache for computed metrics
         self.metrics_cache = {}
+        self._bert_eval = BertScoreEvaluator(self.bertscore_model)
+        self._diversity_eval = DiversityEvaluator()
+        self._goal_eval = GoalEvaluator()
+        self._coherence_eval = CoherenceEvaluator()
+        self._goal_completion_eval = GoalCompletionEvaluator(config)
+
+    def evaluate_goal_completion(
+        self,
+        dialogue: Dict[str, Any],
+        llm_client: Any = None,
+        *,
+        use_llm_judge: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """
+        Automatic goal completion: rule-based slot/task checks plus optional LLM judge.
+
+        Returns keys ``goal_completed``, ``completion_score``, ``missing_requirements``
+        (and optional diagnostics).
+        """
+        return self._goal_completion_eval.evaluate(
+            dialogue,
+            llm_client=llm_client,
+            use_llm_judge=use_llm_judge,
+        )
+
+    def research_report(
+        self,
+        synthetic_dialogues: List[Dict[str, Any]],
+        multiwoz_dialogues: List[Dict[str, Any]],
+        *,
+        confidence: float = 0.95,
+    ) -> ResearchEvaluationReport:
+        """
+        Run the full research metric suite (BERTScore, Distinct-n, goal completion,
+        coherence, TF–IDF semantic similarity) vs MultiWOZ references.
+
+        Use ``report.save_csv(prefix)`` for CSV + viz JSON exports.
+        """
+        suite = ResearchEvaluationSuite(self.config, confidence=confidence)
+        return suite.evaluate(synthetic_dialogues, multiwoz_dialogues)
+
+    @staticmethod
+    def evaluate_in_batches(
+        config: Config,
+        synthetic_dialogues: List[Dict[str, Any]],
+        multiwoz_dialogues: List[Dict[str, Any]],
+        *,
+        chunk_size: int = 256,
+        confidence: float = 0.95,
+    ) -> ResearchEvaluationReport:
+        """Large-corpus entry point: chunked evaluation with merged statistics."""
+        suite = ResearchEvaluationSuite(config, confidence=confidence)
+        return evaluate_batch_chunks(
+            suite, synthetic_dialogues, multiwoz_dialogues, chunk_size=chunk_size
+        )
     
     def evaluate_synthetic_vs_real(
         self, 
@@ -59,7 +123,11 @@ class Evaluator:
         results = {
             "semantic_similarity": self._compute_semantic_similarity(synthetic_dialogues, real_dialogues),
             "diversity_metrics": self._compute_diversity_metrics(synthetic_dialogues, real_dialogues),
-            "goal_relevance": self._compute_goal_relevance(synthetic_dialogues),
+            "goal_relevance": self._goal_eval.corpus_goal_relevance(synthetic_dialogues),
+            "coherence_metrics": {
+                "synthetic": self._coherence_eval.corpus_mean(synthetic_dialogues),
+                "real": self._coherence_eval.corpus_mean(real_dialogues),
+            },
             "domain_analysis": self._compute_domain_analysis(synthetic_dialogues, real_dialogues),
             "statistical_analysis": self._compute_statistical_analysis(synthetic_dialogues, real_dialogues)
         }
@@ -69,35 +137,9 @@ class Evaluator:
         
         return results
     
-    BERTSCORE_FALLBACK_MODEL = "bert-base-uncased"
-
     def _bertscore_one_pair(self, cand_text: str, ref_text: str, max_chars: int = 1000) -> Optional[float]:
         """Compute BERTScore for one pair; retry with shorter text, then fallback model on overflow."""
-        def run_bertscore(cand: str, ref: str, model: str):
-            P, R, F1 = bert_score([cand], [ref], model_type=model, verbose=False)
-            return float(F1.item())
-
-        try:
-            return run_bertscore(cand_text, ref_text, self.bertscore_model)
-        except (OverflowError, ValueError, Exception) as e:
-            err_str = str(e).lower()
-            if "int too big to convert" not in err_str and "overflow" not in err_str:
-                logger.warning("Error computing BERTScore: %s", e)
-                return None
-        for cap in [400, 200]:
-            c = cand_text[:cap] if len(cand_text) > cap else cand_text
-            r = ref_text[:cap] if len(ref_text) > cap else ref_text
-            try:
-                return run_bertscore(c, r, self.bertscore_model)
-            except (OverflowError, ValueError, Exception):
-                continue
-        try:
-            c = cand_text[:512] if len(cand_text) > 512 else cand_text
-            r = ref_text[:512] if len(ref_text) > 512 else ref_text
-            return run_bertscore(c, r, self.BERTSCORE_FALLBACK_MODEL)
-        except Exception as e:
-            logger.warning("Error computing BERTScore (fallback model): %s", e)
-            return None
+        return self._bert_eval.score_one_pair(cand_text, ref_text, max_chars)
 
     def _compute_semantic_similarity(
         self, 
@@ -177,8 +219,8 @@ class Evaluator:
         real_texts = [self._extract_dialogue_text(d) for d in real_dialogues]
         
         # Compute diversity metrics
-        synthetic_diversity = self._compute_dialogue_diversity(synthetic_texts)
-        real_diversity = self._compute_dialogue_diversity(real_texts)
+        synthetic_diversity = self._diversity_eval.dialogue_diversity(synthetic_texts)
+        real_diversity = self._diversity_eval.dialogue_diversity(real_texts)
         
         return {
             "synthetic_diversity": synthetic_diversity,
@@ -186,108 +228,6 @@ class Evaluator:
             "diversity_ratio": synthetic_diversity["combined"] / real_diversity["combined"] if real_diversity["combined"] > 0 else 0.0,
             "target_diversity": 0.46  # From research paper
         }
-    
-    def _compute_dialogue_diversity(self, texts: List[str]) -> Dict[str, float]:
-        """Compute diversity (Distinct-1, Distinct-2). Per-dialogue average + word-level tokenization (matches comprehensive eval)."""
-        if not texts:
-            return {"distinct_1": 0.0, "distinct_2": 0.0, "combined": 0.0}
-
-        def tokenize(text: str) -> List[str]:
-            return re.findall(r'\b\w+\b', text.lower())
-
-        def distinct_for_tokens(tokens: List[str]) -> Tuple[float, float]:
-            if not tokens:
-                return 0.0, 0.0
-            uniq_1 = len(set(tokens)) / len(tokens)
-            bigrams = [f"{tokens[i]} {tokens[i+1]}" for i in range(len(tokens) - 1)]
-            uniq_2 = len(set(bigrams)) / len(bigrams) if bigrams else 0.0
-            return uniq_1, uniq_2
-
-        per_d1, per_d2 = [], []
-        for text in texts:
-            tokens = tokenize(text)
-            d1, d2 = distinct_for_tokens(tokens)
-            if tokens:
-                per_d1.append(d1)
-                per_d2.append(d2)
-
-        if not per_d1:
-            return {"distinct_1": 0.0, "distinct_2": 0.0, "combined": 0.0}
-
-        distinct_1 = float(np.mean(per_d1))
-        distinct_2 = float(np.mean(per_d2))
-        combined = (distinct_1 + distinct_2) / 2
-        return {
-            "distinct_1": distinct_1,
-            "distinct_2": distinct_2,
-            "combined": combined
-        }
-    
-    def _compute_goal_relevance(self, synthetic_dialogues: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Compute goal relevance metrics."""
-        logger.info("Computing goal relevance...")
-        
-        goal_satisfied_count = 0
-        domain_goal_satisfaction = {}
-        
-        for dialogue in synthetic_dialogues:
-            domain = dialogue.get("domain", "unknown")
-            goal = dialogue.get("goal", "")
-            turns = dialogue.get("turns", [])
-            
-            # Check if goal is satisfied (simple keyword-based approach)
-            is_satisfied = self._check_goal_satisfaction(goal, turns)
-            
-            if is_satisfied:
-                goal_satisfied_count += 1
-            
-            # Track by domain
-            if domain not in domain_goal_satisfaction:
-                domain_goal_satisfaction[domain] = {"satisfied": 0, "total": 0}
-            
-            domain_goal_satisfaction[domain]["total"] += 1
-            if is_satisfied:
-                domain_goal_satisfaction[domain]["satisfied"] += 1
-        
-        # Compute percentages
-        total_dialogues = len(synthetic_dialogues)
-        overall_goal_relevance = goal_satisfied_count / total_dialogues if total_dialogues > 0 else 0.0
-        
-        domain_goal_relevance = {}
-        for domain, stats in domain_goal_satisfaction.items():
-            domain_goal_relevance[domain] = {
-                "satisfied": stats["satisfied"],
-                "total": stats["total"],
-                "percentage": stats["satisfied"] / stats["total"] if stats["total"] > 0 else 0.0
-            }
-        
-        return {
-            "overall_goal_relevance": overall_goal_relevance,
-            "domain_goal_relevance": domain_goal_relevance,
-            "target_goal_relevance": 0.85  # From research paper
-        }
-    
-    def _check_goal_satisfaction(self, goal: str, turns: List[Dict[str, str]]) -> bool:
-        """Check if a goal is satisfied based on dialogue turns."""
-        if not turns:
-            return False
-        
-        # Look for completion indicators in the last few turns
-        recent_turns = turns[-3:] if len(turns) >= 3 else turns
-        
-        completion_keywords = [
-            "thank you", "thanks", "perfect", "great", "excellent", "that's great", "that works",
-            "sounds good", "all set", "i'm all set", "that's exactly what I needed", "that'll work",
-            "booked", "confirmed", "reserved", "done", "completed", "appreciate it", "good, thank"
-        ]
-        
-        for turn in recent_turns:
-            if turn.get("role") == "User":
-                text = turn.get("text", "").lower()
-                if any(keyword in text for keyword in completion_keywords):
-                    return True
-        
-        return False
     
     def _compute_domain_analysis(
         self, 

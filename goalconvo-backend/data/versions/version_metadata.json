@@ -2698,5 +2698,87 @@
       "pipeline",
       "auto-generated"
     ]
+  },
+  "20260513_210234": {
+    "version_id": "20260513_210234",
+    "timestamp": "2026-05-13T21:02:34.818972",
+    "description": "Pipeline run: 1 dialogues, domains: ['hotel']",
+    "metadata": {
+      "total_dialogues": 1,
+      "avg_turns": 6.0,
+      "domains": [
+        "hotel"
+      ]
+    },
+    "dialogue_count": 1,
+    "domain_distribution": {
+      "hotel": 1
+    },
+    "generation_config": {
+      "num_dialogues": 1,
+      "domains": [
+        "hotel"
+      ],
+      "temperature": 0.7,
+      "max_turns": 15,
+      "min_turns": 6,
+      "few_shot_examples": 4,
+      "model": "llama-3.3-70b-versatile",
+      "overrides": null,
+      "experiment_tag": null
+    },
+    "checksum": "615416663002337f",
+    "parent_version": null,
+    "tags": [
+      "pipeline",
+      "auto-generated"
+    ]
+  },
+  "20260604_151119": {
+    "version_id": "20260604_151119",
+    "timestamp": "2026-06-04T15:11:19.589859",
+    "description": "Pipeline run: 10 dialogues, domains: ['hotel', 'restaurant', 'taxi', 'train', 'attraction']",
+    "metadata": {
+      "total_dialogues": 10,
+      "avg_turns": 6.0,
+      "domains": [
+        "hotel",
+        "restaurant",
+        "taxi",
+        "train",
+        "attraction"
+      ]
+    },
+    "dialogue_count": 10,
+    "domain_distribution": {
+      "hotel": 2,
+      "restaurant": 2,
+      "taxi": 2,
+      "train": 2,
+      "attraction": 2
+    },
+    "generation_config": {
+      "num_dialogues": 10,
+      "domains": [
+        "hotel",
+        "restaurant",
+        "taxi",
+        "train",
+        "attraction"
+      ],
+      "temperature": 0.7,
+      "max_turns": 15,
+      "min_turns": 6,
+      "few_shot_examples": 4,
+      "model": "llama-3.3-70b-versatile",
+      "overrides": null,
+      "experiment_tag": null
+    },
+    "checksum": "79018ba1683f14f8",
+    "parent_version": null,
+    "tags": [
+      "pipeline",
+      "auto-generated"
+    ]
   }
 }

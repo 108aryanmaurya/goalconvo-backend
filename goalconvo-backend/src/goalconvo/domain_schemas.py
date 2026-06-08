@@ -83,6 +83,18 @@ DOMAIN_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "'opening times', or 'tickets can be booked'."
         ),
     },
+    "technical_support": {
+        "slots": [
+            "problem / symptom (e.g. login error, slow wifi, crash)",
+            "diagnostic or troubleshooting steps",
+            "resolution or workaround (or escalation path)",
+            "user acknowledgment or confirmation that the issue is addressed",
+        ],
+        "instruction": (
+            "Stay factual; do not invent product versions or internal ticket IDs. "
+            "Give clear steps, links or settings paths as placeholders when specifics are unknown."
+        ),
+    },
 }
 
 # Fallback for unknown domains

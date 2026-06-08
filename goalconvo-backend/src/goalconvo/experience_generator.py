@@ -14,6 +14,7 @@ from pathlib import Path
 from .config import Config
 from .llm_client import LLMClient
 from .dataset_store import DatasetStore
+from .prompts.planner_prompts import PLANNER_PROMPTS
 from .utils import load_json, save_json, ensure_dir, extract_domain_from_goal
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class ExperienceGenerator:
         self.seed_goals = self._load_seed_goals()
         
         # Few-shot prompt templates
-        self.prompt_templates = self._create_prompt_templates()
+        self.prompt_templates = dict(PLANNER_PROMPTS)
     
     def _load_seed_goals(self) -> Dict[str, List[str]]:
         """Load seed goals from file or create default ones."""
@@ -82,57 +83,6 @@ class ExperienceGenerator:
                 "Find things to do this weekend",
                 "Book a guided tour of the castle"
             ]
-        }
-    
-    def _create_prompt_templates(self) -> Dict[str, str]:
-        """Create prompt templates optimized for evaluation metrics (TSR, GCR, coherence, diversity)."""
-        return {
-            "system": """You are an expert at creating realistic, evaluable user scenarios for task-oriented dialogues. 
-Your task is to expand a simple user goal into a rich scenario that will produce high-quality dialogues with:
-- Clear, achievable goals with explicit constraints and requestables (for Goal Completion Rate)
-- Natural context that enables coherent conversations (for Coherence)
-- Varied, natural first utterances (for Diversity and Fluency)
-
-CRITICAL REQUIREMENTS FOR EVALUATION:
-1. **Goal must be specific and measurable**: Include explicit constraints (area, price_range, type, etc.) and requestables (phone, address, reference number) that can be verified.
-2. **Context should be realistic and detailed**: Provide background that explains why the user needs this, enabling natural conversation flow.
-3. **First utterance should be natural and varied**: Use different phrasing patterns across examples—avoid templates.
-4. **Include structured fields when helpful**: Use subgoals (steps to achieve goal) and constraints (specific requirements) to make goals evaluable.
-
-The output should be in JSON format with fields: goal, context, first_utterance, user_persona.
-OPTIONAL but RECOMMENDED for better evaluation:
-- subgoals: array of steps (e.g. ["find options", "compare prices", "confirm booking"])
-- constraints: object with specific requirements (e.g. {"price_range": "budget", "area": "centre", "type": "hotel"})
-- user_persona_traits: communication style (e.g. "formal and concise" or "friendly and detailed")
-- supportbot_style: desired assistant style (e.g. "formal and brief" or "friendly and detailed")
-
-IMPORTANT: Make goals specific enough that completion can be clearly detected (e.g., "book a hotel" → "book a budget hotel in the city center for tonight").
-When the goal involves a booking or reservation, include an explicit requestable where possible (e.g. "and give me the confirmation number" or "confirm the pickup time and place") so the dialogue requires the assistant to provide concrete information.""",
-            
-            "user": """Here are examples of well-structured goals that lead to high evaluation scores:
-
-Example 1 (Hotel - explicit constraints):
-Goal: "Book a budget hotel room in the city center for tonight"
-Context: "I'm traveling for business and arriving late tonight. I need a comfortable hotel in the city center that's budget-friendly and close to public transport."
-First utterance: "Hi, I'm looking for a hotel room for tonight. I'd prefer something in the city center that's not too expensive—budget range if possible."
-Constraints (for the goal above): price_range=budget, area=city center, date=tonight
-Requestables (information the user may want): phone, address, reference_number
-
-Example 2 (Restaurant - specific requirements):
-Goal: "Find an Italian restaurant for dinner tonight with vegetarian options"
-Context: "I'm celebrating my anniversary with my partner tonight. We want authentic Italian food, but one of us is vegetarian, so we need a place with good vegetarian options."
-First utterance: "Hello, I'm looking for an Italian restaurant for dinner tonight. We'd like authentic Italian cuisine, and it's important that they have good vegetarian options."
-Constraints (for the goal above): cuisine=Italian, meal=dinner, dietary=vegetarian
-Requestables (information the user may want): phone, address, reservation_confirmation
-
-IMPORTANT: If the goal below is in MultiWOZ format (e.g., "hotel-name: Alpha-Milton guest house" or "taxi-leaveat: 10:00; taxi-departure: Jesus College"), you MUST convert it to natural language FIRST, then expand it.
-
-For example:
-- "hotel-name: Alpha-Milton guest house" → "Book a room at Alpha-Milton guest house"
-- "restaurant-name: City Stop Restaurant" → "Find information about City Stop Restaurant" or "Make a reservation at City Stop Restaurant"
-- "taxi-leaveat: 10:00; taxi-departure: Jesus College" → "Book a taxi leaving at 10:00 from Jesus College"
-
-Now expand this goal with explicit constraints and requestables: {goal}"""
         }
     
     def _normalize_goal(self, goal: str) -> str:

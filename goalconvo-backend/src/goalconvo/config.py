@@ -6,7 +6,7 @@ Contains all hyperparameters and settings from the research paper.
 
 import os
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -112,11 +112,60 @@ class Config:
     rl_coherence_weight: float = float(os.getenv("RL_COHERENCE_WEIGHT", "0.4"))
     max_tokens_memory_refresh: int = int(os.getenv("MAX_TOKENS_MEMORY_REFRESH", "256"))
     max_tokens_planning: int = int(os.getenv("MAX_TOKENS_PLANNING", "180"))
+    # Structured JSON planner (low-temperature, deterministic-style)
+    structured_planner_enabled: bool = os.getenv("STRUCTURED_PLANNER_ENABLED", "true").lower() in ("true", "1", "yes")
+    planner_temperature: float = float(os.getenv("PLANNER_TEMPERATURE", "0.1"))
+    planner_top_p: float = float(os.getenv("PLANNER_TOP_P", "0.85"))
+    max_tokens_structured_planner: int = int(os.getenv("MAX_TOKENS_STRUCTURED_PLANNER", "320"))
+    planner_json_max_retries: int = int(os.getenv("PLANNER_JSON_MAX_RETRIES", "3"))
+
+    # Utterance-level reflection: LLM-as-judge on each draft; optional regenerate loop (self-correction)
+    reflection_on_utterances_enabled: bool = os.getenv("REFLECTION_ON_UTTERANCES_ENABLED", "true").lower() in ("true", "1", "yes")
+    reflection_max_attempts: int = int(os.getenv("REFLECTION_MAX_ATTEMPTS", "3"))
+    reflection_min_accept_score: int = int(os.getenv("REFLECTION_MIN_ACCEPT_SCORE", "4"))
+    reflection_temperature: float = float(os.getenv("REFLECTION_TEMPERATURE", "0.15"))
+    max_tokens_reflection: int = int(os.getenv("MAX_TOKENS_REFLECTION", "320"))
+    pipeline_show_progress: bool = os.getenv("PIPELINE_SHOW_PROGRESS", "false").lower() in ("true", "1", "yes")
+    # Ablation: only SupportBot uses LLM; user turns are templated (no User-agent LLM).
+    single_agent_support_only: bool = os.getenv("SINGLE_AGENT_SUPPORT_ONLY", "false").lower() in ("true", "1", "yes")
+
+    # Experiment / reproducibility (optional; used by scripts and DialoguePipeline)
+    experiment_tracking: bool = os.getenv("EXPERIMENT_TRACKING", "false").lower() in ("true", "1", "yes")
+    experiment_name: str = os.getenv("EXPERIMENT_NAME", "")
+    experiment_seed: Optional[int] = None
+    experiments_dir: str = field(default="")
 
     # Evaluation settings
     bertscore_model: str = "microsoft/deberta-xlarge-mnli"
     diversity_metrics: List[str] = field(default_factory=lambda: ["distinct-1", "distinct-2", "self-bleu"])
-    
+    goal_completion_llm_judge: bool = os.getenv("GOAL_COMPLETION_LLM_JUDGE", "false").lower() in ("true", "1", "yes")
+    goal_completion_score_threshold: float = float(os.getenv("GOAL_COMPLETION_SCORE_THRESHOLD", "0.72"))
+    goal_completion_judge_temperature: float = float(os.getenv("GOAL_COMPLETION_JUDGE_TEMPERATURE", "0.1"))
+    max_tokens_goal_completion_judge: int = int(os.getenv("MAX_TOKENS_GOAL_COMPLETION_JUDGE", "220"))
+
+    # Prompt-only research extensions (all off by default for backward compatibility)
+    research_hierarchical_subgoals: bool = os.getenv("RESEARCH_HIERARCHICAL_SUBGOALS", "false").lower() in ("true", "1", "yes")
+    research_dynamic_goal_decomposition: bool = os.getenv("RESEARCH_DYNAMIC_GOAL_DECOMPOSITION", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    research_memory_summarization: bool = os.getenv("RESEARCH_MEMORY_SUMMARIZATION", "false").lower() in ("true", "1", "yes")
+    research_summarize_every_n_iters: int = int(os.getenv("RESEARCH_SUMMARIZE_EVERY_N_ITERS", "2"))
+    research_adaptive_dialogue_length: bool = os.getenv("RESEARCH_ADAPTIVE_DIALOGUE_LENGTH", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    research_adaptive_extend_turns: int = int(os.getenv("RESEARCH_ADAPTIVE_EXTEND_TURNS", "0"))
+    research_contradiction_detection: bool = os.getenv("RESEARCH_CONTRADICTION_DETECTION", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    research_retry_correction: bool = os.getenv("RESEARCH_RETRY_CORRECTION", "false").lower() in ("true", "1", "yes")
+    max_tokens_research_aux: int = int(os.getenv("MAX_TOKENS_RESEARCH_AUX", "256"))
+
     def __post_init__(self):
         """Validate configuration after initialization and set data paths."""
         # Set data paths relative to goalconvo-2 directory (where config.py is located)
@@ -131,6 +180,15 @@ class Config:
             self.multiwoz_dir = os.getenv("MULTIWOZ_DIR", str(base_dir / "data" / "multiwoz"))
         if not self.few_shot_hub_dir or self.few_shot_hub_dir == "":
             self.few_shot_hub_dir = os.getenv("FEW_SHOT_HUB_DIR", str(base_dir / "data" / "few_shot_hub"))
+        if not self.experiments_dir or self.experiments_dir == "":
+            self.experiments_dir = os.getenv("EXPERIMENTS_DIR", str(Path(self.data_dir) / "experiments"))
+
+        es = os.getenv("EXPERIMENT_SEED", "").strip()
+        if self.experiment_seed is None and es != "":
+            try:
+                self.experiment_seed = int(es)
+            except ValueError:
+                pass
         
         if not self.ollama_enabled and not self.mistral_api_key and not self.openai_api_key and not self.gemini_api_key and not self.deepseek_api_key and not self.groq_api_key and not self.openrouter_api_key:
             raise ValueError("Set at least one: OPENROUTER_API_KEY, GROQ_API_KEY, OLLAMA_ENABLED=true, DEEPSEEK_API_KEY, GEMINI_API_KEY, MISTRAL_API_KEY, or OPENAI_API_KEY")

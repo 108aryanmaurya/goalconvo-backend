@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("../README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 with open("requirements.txt", "r", encoding="utf-8") as fh:
@@ -30,7 +30,7 @@ setup(
     entry_points={
         "console_scripts": [
             "goalconvo-generate=scripts.generate_dialogues:main",
-            "goalconvo-evaluate=scripts.evaluate:main",
+            "goalconvo-evaluate=scripts.comprehensive_dialogue_evaluation:main",
             "goalconvo-download-multiwoz=scripts.download_multiwoz:main",
         ],
     },

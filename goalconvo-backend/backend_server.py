@@ -35,7 +35,6 @@ from goalconvo.multi_agent_simulator import DialogueSimulator
 from goalconvo.quality_judge import QualityJudge
 from goalconvo.dataset_store import DatasetStore
 from goalconvo.utils import validate_dialogue_format
-from goalconvo.evaluator import Evaluator
 from goalconvo.dataset_versioning import DatasetVersionManager
 from goalconvo.human_evaluator import HumanEvaluator
 from dataclasses import asdict
@@ -84,7 +83,6 @@ dataset_store = DatasetStore(config)
 experience_generator = ExperienceGenerator(config, generation_llm_client, dataset_store)
 dialogue_simulator = DialogueSimulator(config, generation_llm_client)
 quality_judge = QualityJudge(config, evaluation_llm_client)
-evaluator = Evaluator(config)
 generator = GoalConvoGenerator(config)
 
 

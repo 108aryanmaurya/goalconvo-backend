@@ -23,9 +23,14 @@ class TestDialogueSimulator:
         self.config.max_turns = 5
         self.config.temperature = 0.7
         self.config.top_p = 0.9
-        
+        # Avoid extra planner LLM calls in unit tests (mock side_effect length).
+        self.config.structured_planner_enabled = False
+        self.config.agent_memory_enabled = False
+        self.config.reflection_on_utterances_enabled = False
+
         # Mock LLM client
         self.mock_llm_client = MagicMock()
+        self.mock_llm_client.api_config = {"provider": "test", "model": "mock-model"}
         
         self.simulator = DialogueSimulator(self.config, self.mock_llm_client)
     
@@ -47,8 +52,12 @@ class TestDialogueSimulator:
         ]
         
         result = self.simulator.simulate_dialogue(experience_data)
-        
-        assert "dialogue_id" in result
+
+        assert "pipeline_turns" in result
+        assert len(result["pipeline_turns"]) >= 1
+        assert "stop_reason" in result["metadata"]
+        assert "reproducibility" in result["metadata"]
+        assert result["metadata"]["reproducibility"].get("llm_model") == "mock-model"
         assert result["goal"] == "Book a hotel room"
         assert result["domain"] == "hotel"
         assert "turns" in result
@@ -58,6 +67,7 @@ class TestDialogueSimulator:
     
     def test_simulate_dialogue_max_turns(self):
         """Test dialogue simulation with max turns reached."""
+        self.config.min_turns = 4  # allow early cap when max_turns is small
         experience_data = {
             "goal": "Test goal",
             "domain": "hotel",
@@ -70,16 +80,43 @@ class TestDialogueSimulator:
         
         result = self.simulator.simulate_dialogue(experience_data, max_turns=2)
         
-        assert len(result["turns"]) <= 4  # 2 exchanges = 4 turns max
+        # 1 initial user + max_turns pairs of (SupportBot, User) = 1 + 2*2 = 5
+        assert len(result["turns"]) <= 5
         assert result["metadata"]["max_turns_reached"] is True
-    
+        assert result["metadata"]["stop_reason"] == "max_turns"
+
+    def test_export_dialogue_json(self, tmp_path):
+        """Round-trip export of dialogue JSON including pipeline_turns."""
+        import json as jsonlib
+
+        from goalconvo.pipeline import export_dialogue_json
+
+        experience_data = {
+            "goal": "X",
+            "domain": "hotel",
+            "context": "Y",
+            "first_utterance": "Hello",
+        }
+        self.mock_llm_client.generate_completion.return_value = "Bot reply"
+        self.config.min_turns = 4
+        self.config.max_turns = 1
+        result = self.simulator.simulate_dialogue(experience_data)
+        out = tmp_path / "dialogue.json"
+        export_dialogue_json(result, str(out))
+        loaded = jsonlib.loads(out.read_text(encoding="utf-8"))
+        assert loaded["dialogue_id"] == result["dialogue_id"]
+        assert loaded["pipeline_turns"] == result["pipeline_turns"]
+
     def test_check_goal_satisfied_yes(self):
         """Test goal satisfaction check with YES response."""
+        self.config.min_turns = 4
         goal = "Book a hotel room"
         history = [
             {"role": "User", "text": "I need a hotel room"},
             {"role": "SupportBot", "text": "I can help with that"},
-            {"role": "User", "text": "Thank you, that's perfect!"}
+            {"role": "User", "text": "I'd like two nights in the centre"},
+            {"role": "SupportBot", "text": "Your booking at the Grand Hotel is confirmed. Reference: GH-001."},
+            {"role": "User", "text": "Thank you, that's perfect!"},
         ]
         
         # Mock LLM response indicating goal satisfaction
@@ -91,6 +128,7 @@ class TestDialogueSimulator:
     
     def test_check_goal_satisfied_no(self):
         """Test goal satisfaction check with NO response."""
+        self.config.min_turns = 4
         goal = "Book a hotel room"
         history = [
             {"role": "User", "text": "I need a hotel room"},

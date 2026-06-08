@@ -1,0 +1,1865 @@
+[
+  {
+    "dialogue_id": "9cce5a78-0950-4b56-b02b-0d19c7e6d40b",
+    "goal": "Book a room at Alexander hotel",
+    "domain": "hotel",
+    "context": "User needs assistance with booking a room at Alexander hotel, likely for a upcoming trip or stay",
+    "user_persona": "Traveler",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I'm looking to book a room at the Alexander hotel, can you help me with that?",
+        "timestamp": "2026-06-04T15:10:54.147987",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "To book a room at the Alexander hotel, I'll need to know your check-in and check-out dates. Could you please provide me with the dates you're planning to stay? This will help me check availability and provide you with more tailored options.",
+        "timestamp": "2026-06-04T15:10:56.481025",
+        "metadata": {
+          "tools_used": [
+            "search",
+            "db_lookup"
+          ],
+          "utterance_reflection": {
+            "attempts": [
+              {
+                "attempt": 1,
+                "verdict": {
+                  "accepted": true,
+                  "issues": [],
+                  "score": 5,
+                  "reason": "The response is goal-aligned, coherent, and makes progress on the task without hallucination or memory contradiction."
+                },
+                "draft_preview": "To book a room at the Alexander hotel, I'll need to know your check-in and check-out dates. Could you please provide me with the dates you're planning to stay? This will help me check availability and provide you with more tailored options."
+              }
+            ],
+            "exhausted": false
+          },
+          "structured_planner": {
+            "current_state": "clarifying_dates",
+            "identified_slots": [
+              "Alexander hotel"
+            ],
+            "missing_slots": [
+              "check-in date",
+              "check-out date",
+              "room type"
+            ],
+            "subgoal": "determine availability",
+            "next_action": "User should provide check-in and check-out dates",
+            "goal_progress": "early",
+            "subgoal_hierarchy": [
+              "book a room at Alexander hotel",
+              "determine availability"
+            ],
+            "decomposition_notes": "user initiated booking inquiry"
+          }
+        }
+      },
+      {
+        "role": "User",
+        "text": "I'm planning to stay from the 15th to the 18th of next month, could you please check the availability of rooms at the Alexander hotel for those dates?",
+        "timestamp": "2026-06-04T15:10:58.455028",
+        "metadata": {
+          "utterance_reflection": {
+            "attempts": [
+              {
+                "attempt": 1,
+                "verdict": {
+                  "accepted": true,
+                  "issues": [],
+                  "score": 5,
+                  "reason": "The utterance is goal-aligned, coherent, and progresses the task without hallucination or memory contradiction."
+                },
+                "draft_preview": "I'm planning to stay from the 15th to the 18th of next month, could you please check the availability of rooms at the Alexander hotel for those dates?"
+              }
+            ],
+            "exhausted": false
+          },
+          "structured_planner": {
+            "current_state": "clarifying_dates",
+            "identified_slots": [
+              "Alexander hotel"
+            ],
+            "missing_slots": [
+              "check-in date",
+              "check-out date"
+            ],
+            "subgoal": "provide check-in and check-out dates",
+            "next_action": "User should provide check-in and check-out dates to Support",
+            "goal_progress": "early",
+            "subgoal_hierarchy": [
+              "book a room at Alexander hotel",
+              "provide check-in and check-out dates"
+            ],
+            "decomposition_notes": "dates needed to check availability"
+          },
+          "rl_lite": {
+            "reward": 0.7041,
+            "goal_signal": 1.0,
+            "coherence_signal": 0.2602
+          }
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you book at Alexander Hotel. What dates do you need?",
+        "timestamp": "2026-06-04T15:10:59.143197",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a room at Alexander hotel.",
+        "timestamp": "2026-06-04T15:10:59.249431",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you book at Alexander Hotel. What dates do you need the room for?",
+        "timestamp": "2026-06-04T15:10:59.363376",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I'm looking to book a room at the Alexander hotel, can you help me with that?",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [
+            "looking to book a room"
+          ],
+          "support_facts": [
+            "needs help with booking"
+          ],
+          "slots": {
+            "hotel": {
+              "hotel": "Alexander hotel",
+              "status": "unbooked"
+            }
+          },
+          "entity_keys": [
+            "hotel_name"
+          ],
+          "unresolved_goals": [
+            "book a room at Alexander hotel"
+          ]
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 477.48
+        }
+      },
+      {
+        "turn": 1,
+        "planner_output": {
+          "support_phase": {
+            "current_state": "clarifying_dates",
+            "identified_slots": [
+              "Alexander hotel"
+            ],
+            "missing_slots": [
+              "check-in date",
+              "check-out date",
+              "room type"
+            ],
+            "subgoal": "determine availability",
+            "next_action": "User should provide check-in and check-out dates",
+            "goal_progress": "early",
+            "subgoal_hierarchy": [
+              "book a room at Alexander hotel",
+              "determine availability"
+            ],
+            "decomposition_notes": "user initiated booking inquiry"
+          },
+          "user_phase": {
+            "current_state": "clarifying_dates",
+            "identified_slots": [
+              "Alexander hotel"
+            ],
+            "missing_slots": [
+              "check-in date",
+              "check-out date"
+            ],
+            "subgoal": "provide check-in and check-out dates",
+            "next_action": "User should provide check-in and check-out dates to Support",
+            "goal_progress": "early",
+            "subgoal_hierarchy": [
+              "book a room at Alexander hotel",
+              "provide check-in and check-out dates"
+            ],
+            "decomposition_notes": "dates needed to check availability"
+          }
+        },
+        "user_response": "I'm planning to stay from the 15th to the 18th of next month, could you please check the availability of rooms at the Alexander hotel for those dates?",
+        "support_response": "To book a room at the Alexander hotel, I'll need to know your check-in and check-out dates. Could you please provide me with the dates you're planning to stay? This will help me check availability and provide you with more tailored options.",
+        "reflection_score": "support:score=5 accepted=True; user:score=5 accepted=True",
+        "memory_snapshot": {
+          "user_facts": [
+            "looking to book a room",
+            "planning to stay from the 15th to the 18th of next month"
+          ],
+          "support_facts": [
+            "needs help with booking",
+            "requested availability check"
+          ],
+          "slots": {
+            "hotel": {
+              "hotel": "Alexander hotel",
+              "status": "unbooked",
+              "check_in": "15th of next month",
+              "check_out": "18th of next month"
+            }
+          },
+          "entity_keys": [
+            "hotel_name"
+          ],
+          "unresolved_goals": [
+            "book a room at Alexander hotel"
+          ]
+        },
+        "timings_ms": {
+          "support_generation": 1855.25,
+          "user_generation": 1973.79,
+          "memory_update": 583.48
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:10:59.474293",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 5.326,
+      "generation_start_time": "2026-06-04T15:10:54.147914",
+      "generation_end_time": "2026-06-04T15:10:59.474284",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "goal_complexity": 6,
+      "user_persona_traits": "polite, inquiring",
+      "supportbot_style": "helpful and informative",
+      "rl_lite": {
+        "step_rewards": [
+          0.7041
+        ],
+        "mean_reward": 0.7041,
+        "weights": {
+          "goal": 0.6,
+          "coherence": 0.4
+        }
+      },
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:40:59.474373+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.6599999999999999,
+      "quality_assessment": {
+        "dialogue_id": "9cce5a78-0950-4b56-b02b-0d19c7e6d40b",
+        "domain": "hotel",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 2.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.6599999999999999,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:01.872060"
+      }
+    }
+  },
+  {
+    "dialogue_id": "202afa50-d14e-4b62-bc63-3ce41c39da90",
+    "goal": "Book a room at B Guesthouse",
+    "domain": "hotel",
+    "context": "User needs assistance with book a room at b guesthouse",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with book a room at b guesthouse",
+        "timestamp": "2026-06-04T15:10:59.604296",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you book at B Guesthouse. What dates do you need the room for?",
+        "timestamp": "2026-06-04T15:11:00.203974",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a room at B Guesthouse.",
+        "timestamp": "2026-06-04T15:11:00.317477",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you book at B Guesthouse. What dates do you need the room for?",
+        "timestamp": "2026-06-04T15:11:00.412164",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a room at B Guesthouse.",
+        "timestamp": "2026-06-04T15:11:00.521599",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you book at B Guesthouse. What dates do you need the room for?",
+        "timestamp": "2026-06-04T15:11:00.631072",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with book a room at b guesthouse",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [
+            "need help with booking"
+          ],
+          "support_facts": [
+            "user is looking for a room"
+          ],
+          "slots": {
+            "hotel": {
+              "hotel": "B Guesthouse"
+            }
+          },
+          "entity_keys": [
+            "venue"
+          ],
+          "unresolved_goals": [
+            "book a room at B Guesthouse"
+          ]
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 486.21
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:00.741060",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 1.137,
+      "generation_start_time": "2026-06-04T15:10:59.604269",
+      "generation_end_time": "2026-06-04T15:11:00.741053",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:00.741125+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.72,
+      "quality_assessment": {
+        "dialogue_id": "202afa50-d14e-4b62-bc63-3ce41c39da90",
+        "domain": "hotel",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 3.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.72,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:02.216915"
+      }
+    }
+  },
+  {
+    "dialogue_id": "c1a7789b-b797-45d6-9b7d-2885ed7e7445",
+    "goal": "restaurant-food: French",
+    "domain": "restaurant",
+    "context": "User needs assistance with restaurant-food: french",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with restaurant-food: french",
+        "timestamp": "2026-06-04T15:11:02.467380",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you with Restaurant-Food: French. What time are you looking to dine and how many people?",
+        "timestamp": "2026-06-04T15:11:02.701460",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with restaurant-food: French.",
+        "timestamp": "2026-06-04T15:11:02.822084",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you with Restaurant-Food: French. What time are you looking to dine and how many people?",
+        "timestamp": "2026-06-04T15:11:02.945858",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with restaurant-food: French.",
+        "timestamp": "2026-06-04T15:11:03.089039",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you with Restaurant-Food: French. What time are you looking to dine and how many people?",
+        "timestamp": "2026-06-04T15:11:03.205894",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with restaurant-food: french",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [],
+          "support_facts": [],
+          "slots": {},
+          "entity_keys": [],
+          "unresolved_goals": []
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 115.6
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:03.334739",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 0.867,
+      "generation_start_time": "2026-06-04T15:11:02.467344",
+      "generation_end_time": "2026-06-04T15:11:03.334737",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:03.334775+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.6,
+      "quality_assessment": {
+        "dialogue_id": "c1a7789b-b797-45d6-9b7d-2885ed7e7445",
+        "domain": "restaurant",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 1.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.6,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:04.868989"
+      }
+    }
+  },
+  {
+    "dialogue_id": "39612767-5e88-40b2-8127-b6433ea39cb1",
+    "goal": "restaurant-food: Russian",
+    "domain": "restaurant",
+    "context": "User needs assistance with restaurant-food: russian",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with restaurant-food: russian",
+        "timestamp": "2026-06-04T15:11:03.462515",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you with Restaurant-Food: Russian. What time are you looking to dine and how many people?",
+        "timestamp": "2026-06-04T15:11:03.706047",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with restaurant-food: Russian.",
+        "timestamp": "2026-06-04T15:11:03.828196",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you with Restaurant-Food: Russian. What time are you looking to dine and how many people?",
+        "timestamp": "2026-06-04T15:11:03.967092",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with restaurant-food: Russian.",
+        "timestamp": "2026-06-04T15:11:04.082716",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help you with Restaurant-Food: Russian. What time are you looking to dine and how many people?",
+        "timestamp": "2026-06-04T15:11:04.197808",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with restaurant-food: russian",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [],
+          "support_facts": [],
+          "slots": {},
+          "entity_keys": [],
+          "unresolved_goals": []
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 117.15
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:04.322481",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 0.86,
+      "generation_start_time": "2026-06-04T15:11:03.462439",
+      "generation_end_time": "2026-06-04T15:11:04.322479",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:04.322518+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.6,
+      "quality_assessment": {
+        "dialogue_id": "39612767-5e88-40b2-8127-b6433ea39cb1",
+        "domain": "restaurant",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 1.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.6,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:05.422007"
+      }
+    }
+  },
+  {
+    "dialogue_id": "980841ae-bd44-4d46-883b-f24208e5240b",
+    "goal": "Book a taxi leaving at 12:15 from aylesbray lodge guest house",
+    "domain": "taxi",
+    "context": "User needs assistance with book a taxi leaving at 12:15 from aylesbray lodge guest house",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with book a taxi leaving at 12:15 from aylesbray lodge guest house",
+        "timestamp": "2026-06-04T15:11:07.606585",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can arrange a taxi for you. What's your destination and preferred pickup time?",
+        "timestamp": "2026-06-04T15:11:08.369598",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a taxi leaving at 12:15 from aylesbray lodge guest house.",
+        "timestamp": "2026-06-04T15:11:08.481617",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can arrange a taxi for you. What's your destination and preferred pickup time?",
+        "timestamp": "2026-06-04T15:11:08.594793",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a taxi leaving at 12:15 from aylesbray lodge guest house.",
+        "timestamp": "2026-06-04T15:11:08.726170",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can arrange a taxi for you. What's your destination and preferred pickup time?",
+        "timestamp": "2026-06-04T15:11:08.845053",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with book a taxi leaving at 12:15 from aylesbray lodge guest house",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [
+            "need help booking a taxi"
+          ],
+          "support_facts": [
+            "taxi booking is available"
+          ],
+          "slots": {
+            "taxi": {
+              "pickup_time": "12:15",
+              "pickup_location": "aylesbray lodge guest house",
+              "status": "pending"
+            }
+          },
+          "entity_keys": [
+            "pickup_location"
+          ],
+          "unresolved_goals": [
+            "book a taxi leaving at 12:15 from aylesbray lodge guest house"
+          ]
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 621.64
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:08.962237",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 1.356,
+      "generation_start_time": "2026-06-04T15:11:07.606535",
+      "generation_end_time": "2026-06-04T15:11:08.962235",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:08.962262+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.6,
+      "quality_assessment": {
+        "dialogue_id": "980841ae-bd44-4d46-883b-f24208e5240b",
+        "domain": "taxi",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 1.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.6,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:09.693707"
+      }
+    }
+  },
+  {
+    "dialogue_id": "70cfc82f-347d-485d-b921-7da675ee7597",
+    "goal": "Book a taxi from museum of classical archaeology to london kings cross train station",
+    "domain": "taxi",
+    "context": "User needs assistance with book a taxi from museum of classical archaeology to london kings cross train station",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with book a taxi from museum of classical archaeology to london kings cross train station",
+        "timestamp": "2026-06-04T15:11:06.659082",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can arrange a taxi for you. What's your destination and preferred pickup time?",
+        "timestamp": "2026-06-04T15:11:06.909287",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a taxi from museum of classical archaeology to london kings cross train station.",
+        "timestamp": "2026-06-04T15:11:07.018432",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can arrange a taxi for you. What's your destination and preferred pickup time?",
+        "timestamp": "2026-06-04T15:11:07.152311",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a taxi from museum of classical archaeology to london kings cross train station.",
+        "timestamp": "2026-06-04T15:11:07.251283",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can arrange a taxi for you. What's your destination and preferred pickup time?",
+        "timestamp": "2026-06-04T15:11:07.369280",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with book a taxi from museum of classical archaeology to london kings cross train station",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [],
+          "support_facts": [],
+          "slots": {},
+          "entity_keys": [],
+          "unresolved_goals": []
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 128.58
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:07.483866",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 0.825,
+      "generation_start_time": "2026-06-04T15:11:06.659043",
+      "generation_end_time": "2026-06-04T15:11:07.483862",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:07.483913+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.72,
+      "quality_assessment": {
+        "dialogue_id": "70cfc82f-347d-485d-b921-7da675ee7597",
+        "domain": "taxi",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 3.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.72,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:09.284992"
+      }
+    }
+  },
+  {
+    "dialogue_id": "6a77a06b-1e7f-4252-b2e4-cf030319e4ab",
+    "goal": "Catch a train leaving at 14:15",
+    "domain": "train",
+    "context": "User needs assistance with catch a train leaving at 14:15",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with catch a train leaving at 14:15",
+        "timestamp": "2026-06-04T15:11:10.039877",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with train bookings. Where are you traveling to and when?",
+        "timestamp": "2026-06-04T15:11:10.256212",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Catch a train leaving at 14:15.",
+        "timestamp": "2026-06-04T15:11:10.361983",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with train bookings. Where are you traveling to and when?",
+        "timestamp": "2026-06-04T15:11:10.469356",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Catch a train leaving at 14:15.",
+        "timestamp": "2026-06-04T15:11:10.580227",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with train bookings. Where are you traveling to and when?",
+        "timestamp": "2026-06-04T15:11:10.699961",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with catch a train leaving at 14:15",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [],
+          "support_facts": [],
+          "slots": {},
+          "entity_keys": [],
+          "unresolved_goals": []
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 111.4
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:10.811492",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 0.772,
+      "generation_start_time": "2026-06-04T15:11:10.039852",
+      "generation_end_time": "2026-06-04T15:11:10.811488",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:10.811520+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.6,
+      "quality_assessment": {
+        "dialogue_id": "6a77a06b-1e7f-4252-b2e4-cf030319e4ab",
+        "domain": "train",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 1.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.6,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:12.270693"
+      }
+    }
+  },
+  {
+    "dialogue_id": "ee2fd8e8-7437-420c-8522-8194f021ffc0",
+    "goal": "Catch a train leaving at 09:45",
+    "domain": "train",
+    "context": "User needs assistance with catch a train leaving at 09:45",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with catch a train leaving at 09:45",
+        "timestamp": "2026-06-04T15:11:10.918219",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with train bookings. Where are you traveling to and when?",
+        "timestamp": "2026-06-04T15:11:11.158526",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Catch a train leaving at 09:45.",
+        "timestamp": "2026-06-04T15:11:11.273925",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with train bookings. Where are you traveling to and when?",
+        "timestamp": "2026-06-04T15:11:11.381678",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Catch a train leaving at 09:45.",
+        "timestamp": "2026-06-04T15:11:11.502722",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with train bookings. Where are you traveling to and when?",
+        "timestamp": "2026-06-04T15:11:11.609569",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with catch a train leaving at 09:45",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [],
+          "support_facts": [],
+          "slots": {},
+          "entity_keys": [],
+          "unresolved_goals": []
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 122.24
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:11.742596",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 0.824,
+      "generation_start_time": "2026-06-04T15:11:10.918152",
+      "generation_end_time": "2026-06-04T15:11:11.742594",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:11.742635+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.72,
+      "quality_assessment": {
+        "dialogue_id": "ee2fd8e8-7437-420c-8522-8194f021ffc0",
+        "domain": "train",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 3.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.72,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:12.576902"
+      }
+    }
+  },
+  {
+    "dialogue_id": "32ca65c3-df2f-4358-bd6d-84985552702c",
+    "goal": "Book or find information about a train journey",
+    "domain": "attraction",
+    "context": "User needs assistance with book or find information about a train journey",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with book or find information about a train journey",
+        "timestamp": "2026-06-04T15:11:13.056601",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with attractions. Are you interested in museums, tours, or outdoor activities?",
+        "timestamp": "2026-06-04T15:11:13.278730",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book or find information about a train journey.",
+        "timestamp": "2026-06-04T15:11:13.386527",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with attractions. Are you interested in museums, tours, or outdoor activities?",
+        "timestamp": "2026-06-04T15:11:13.494780",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book or find information about a train journey.",
+        "timestamp": "2026-06-04T15:11:13.604103",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with attractions. Are you interested in museums, tours, or outdoor activities?",
+        "timestamp": "2026-06-04T15:11:13.707621",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with book or find information about a train journey",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [],
+          "support_facts": [],
+          "slots": {},
+          "entity_keys": [],
+          "unresolved_goals": []
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 105.0
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:13.814923",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 0.758,
+      "generation_start_time": "2026-06-04T15:11:13.056577",
+      "generation_end_time": "2026-06-04T15:11:13.814921",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:13.814949+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.6,
+      "quality_assessment": {
+        "dialogue_id": "32ca65c3-df2f-4358-bd6d-84985552702c",
+        "domain": "attraction",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 1.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.6,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:15.538158"
+      }
+    }
+  },
+  {
+    "dialogue_id": "b28b3cde-3842-45c0-a25c-2b9313a2d3a8",
+    "goal": "Book a room at Avalon",
+    "domain": "attraction",
+    "context": "User needs assistance with book a room at avalon",
+    "user_persona": "General user",
+    "turns": [
+      {
+        "role": "User",
+        "text": "Hi, I need help with book a room at avalon",
+        "timestamp": "2026-06-04T15:11:13.931034",
+        "metadata": {}
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with attractions. Are you interested in museums, tours, or outdoor activities?",
+        "timestamp": "2026-06-04T15:11:14.592702",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a room at Avalon.",
+        "timestamp": "2026-06-04T15:11:14.696872",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with attractions. Are you interested in museums, tours, or outdoor activities?",
+        "timestamp": "2026-06-04T15:11:14.816563",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "User",
+        "text": "I still need help with Book a room at Avalon.",
+        "timestamp": "2026-06-04T15:11:14.914593",
+        "metadata": {
+          "fallback": true
+        }
+      },
+      {
+        "role": "SupportBot",
+        "text": "I can help with attractions. Are you interested in museums, tours, or outdoor activities?",
+        "timestamp": "2026-06-04T15:11:15.033538",
+        "metadata": {
+          "fallback": true
+        }
+      }
+    ],
+    "pipeline_turns": [
+      {
+        "turn": 0,
+        "planner_output": {},
+        "user_response": "Hi, I need help with book a room at avalon",
+        "support_response": "",
+        "reflection_score": "user:\u2014",
+        "memory_snapshot": {
+          "user_facts": [
+            "need help with booking"
+          ],
+          "support_facts": [
+            "user is looking for assistance"
+          ],
+          "slots": {
+            "hotel": {
+              "hotel": "Avalon",
+              "status": "unbooked"
+            }
+          },
+          "entity_keys": [
+            "hotel_name"
+          ],
+          "unresolved_goals": [
+            "book a room at Avalon"
+          ]
+        },
+        "timings_ms": {
+          "user_generation": 0.0,
+          "memory_update": 545.82
+        }
+      }
+    ],
+    "metadata": {
+      "num_turns": 6,
+      "generated_at": "2026-06-04T15:11:15.132934",
+      "model_version": "llama-3.3-70b-versatile",
+      "llm_provider": "groq",
+      "max_turns_reached": false,
+      "min_turns_met": true,
+      "generation_time_seconds": 1.202,
+      "generation_start_time": "2026-06-04T15:11:13.931009",
+      "generation_end_time": "2026-06-04T15:11:15.132933",
+      "stop_reason": "error",
+      "pipeline_iterations": 15,
+      "research_turn_cap": 15,
+      "reproducibility": {
+        "recorded_at": "2026-06-04T09:41:15.132958+00:00",
+        "llm_provider": "groq",
+        "llm_model": "llama-3.3-70b-versatile",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens_user_turn": 60,
+        "max_tokens_supportbot_turn": 100,
+        "planner_temperature": 0.1,
+        "planner_top_p": 0.85,
+        "max_tokens_structured_planner": 320,
+        "reflection_temperature": 0.15,
+        "max_tokens_reflection": 320,
+        "experiment_seed": null,
+        "prompt_versions": {
+          "planner_experience:system": "0589029dee6826e1",
+          "planner_experience:user": "5bee919941f08689",
+          "planner_structured:system": "29fa49e79eb39bcf",
+          "planner_structured:user": "c2c2da647670b323",
+          "user:system": "9df3bae6c4bea089",
+          "user:user": "be1d27268101bdb7",
+          "support:system": "44d03bcfda7ae2f7",
+          "support:supportbot": "67a6c9cd00455036",
+          "reflection:goal_check": "cd9c8ab505a12279",
+          "reflection:response_critique": "4ed3077f38e38a71"
+        }
+      },
+      "quality_score": 0.72,
+      "quality_assessment": {
+        "dialogue_id": "b28b3cde-3842-45c0-a25c-2b9313a2d3a8",
+        "domain": "attraction",
+        "heuristic_filters": {
+          "length_check": {
+            "passed": true,
+            "num_turns": 6,
+            "min_required": 6,
+            "max_allowed": 15,
+            "message": "Dialogue has 6 turns (required: 6-15)"
+          },
+          "repetition_check": {
+            "passed": true,
+            "has_repetition": false,
+            "message": "No repeated utterances detected"
+          },
+          "profanity_check": {
+            "passed": true,
+            "profane_turns": [],
+            "message": "No profanity detected"
+          },
+          "coherence_check": {
+            "passed": true,
+            "role_coherence": true,
+            "has_empty_responses": false,
+            "message": "Dialogue structure is coherent"
+          },
+          "goal_mention_check": {
+            "passed": true,
+            "goal_mentioned": true,
+            "message": "Goal mentioned in dialogue"
+          },
+          "empty_response_check": {
+            "passed": true,
+            "empty_turns": [],
+            "message": "All responses have sufficient content"
+          },
+          "heuristic_score": 1.0
+        },
+        "llm_evaluation": {
+          "coherence_score": 3.0,
+          "goal_relevance": false,
+          "overall_score": 3.0
+        },
+        "overall_score": 0.72,
+        "passed_filters": true,
+        "assessment_timestamp": "2026-06-04T15:11:15.850991"
+      }
+    }
+  }
+]
